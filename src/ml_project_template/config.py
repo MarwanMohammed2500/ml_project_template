@@ -1,5 +1,6 @@
-from pydantic_yaml import parse_yaml_file_as
+from src.ml_project_template.error_classes import InvalidEnvVarError
 from src.ml_project_template.models import AppConfigs
+from pydantic_yaml import parse_yaml_file_as
 from dotenv import load_dotenv
 import os
 import re
@@ -36,7 +37,7 @@ def validate_env_vars():
             continue
         validated_vars[var] = value
     if errors:
-        raise ValueError("\n".join(errors))
+        raise InvalidEnvVarError("\n".join(errors))
     return validated_vars
 
 ENVS = validate_env_vars()
