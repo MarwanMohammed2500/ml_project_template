@@ -1,0 +1,22 @@
+[project]
+name = "ml-project-template"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "MarwanMohammed2500", email = "marwanmohammed2500@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+ml-project-template = "ml_project_template:main"
+
+[build-system]
+requires = ["uv_build>=0.9.8,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+linter = [
+    "ruff>=0.15.5",
+]
