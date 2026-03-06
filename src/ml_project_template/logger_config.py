@@ -4,11 +4,28 @@ import json
 from datetime import datetime, timezone
 
 RESEARVED_KEYS = (
-    "name","msg","args","levelname","levelno","pathname","filename",
-    "module","exc_info","exc_text","stack_info","lineno","funcName",
-    "created","msecs","relativeCreated","thread","threadName",
-    "processName","process"
+    "name",
+    "msg",
+    "args",
+    "levelname",
+    "levelno",
+    "pathname",
+    "filename",
+    "module",
+    "exc_info",
+    "exc_text",
+    "stack_info",
+    "lineno",
+    "funcName",
+    "created",
+    "msecs",
+    "relativeCreated",
+    "thread",
+    "threadName",
+    "processName",
+    "process",
 )
+
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord):
@@ -18,7 +35,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        
+
         for key, value in record.__dict__.items():
             if key not in RESEARVED_KEYS and key not in log.keys():
                 log[key] = value
@@ -35,7 +52,7 @@ def setup_logging(
     level: str | int = logging.INFO,
     json_logs: bool = True,
     output_file: str | None = None,
-): # TODO: Make the logger context aware (add contextvars)
+):  # TODO: Make the logger context aware (add contextvars)
     """Sets up a custom logger.
 
     ---
@@ -49,7 +66,7 @@ def setup_logging(
             CRITICAL = 50
         json_logs: bool = True: Whetehr to create a JSON Formatter or not. If True, sets the logger's formatter to `JsonFormatter`
         output_file: str|None: If not None, configures a file handler utf-8 encoded with the same formatter as the stream handler.
-    
+
     ---
     Return:
         None

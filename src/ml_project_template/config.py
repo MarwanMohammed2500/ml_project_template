@@ -13,8 +13,10 @@ load_dotenv()
 # Keeping load_configs here is better
 ##############################
 
-def load_configs(yaml_path:str):
+
+def load_configs(yaml_path: str):
     return parse_yaml_file_as(AppConfigs, yaml_path)
+
 
 def validate_env_vars():
     """
@@ -31,13 +33,16 @@ def validate_env_vars():
         if value is None:
             errors.append(f"Missing required environment variable: {var}")
             continue
-        
+
         if not pattern.match(value):
-            errors.append(f"Invalid value for {var}: '{value}' does not match {pattern}")
+            errors.append(
+                f"Invalid value for {var}: '{value}' does not match {pattern}"
+            )
             continue
         validated_vars[var] = value
     if errors:
         raise InvalidEnvVarError("\n".join(errors))
     return validated_vars
+
 
 ENVS = validate_env_vars()
