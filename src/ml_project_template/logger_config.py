@@ -49,6 +49,10 @@ def setup_logging(
             CRITICAL = 50
         json_logs: bool = True: Whetehr to create a JSON Formatter or not. If True, sets the logger's formatter to `JsonFormatter`
         output_file: str|None: If not None, configures a file handler utf-8 encoded with the same formatter as the stream handler.
+    
+    ---
+    Return:
+        None
     """
     stream_handler = logging.StreamHandler(sys.stdout)
 
