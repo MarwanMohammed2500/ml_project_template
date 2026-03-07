@@ -1,4 +1,4 @@
-from src.ml_project_template.error_classes import InvalidEnvVarError
+from src.ml_project_template.exceptions import InvalidEnvVarError
 from src.ml_project_template.models import AppConfigs
 from pydantic_yaml import parse_yaml_file_as
 from dotenv import load_dotenv

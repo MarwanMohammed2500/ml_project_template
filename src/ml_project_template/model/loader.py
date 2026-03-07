@@ -1,4 +1,4 @@
-from src.ml_project_template.error_classes import InvalidModelPathError
+from src.ml_project_template.exceptions import InvalidModelPathError
 from typing import Literal, Optional, Any
 from scipy.special import softmax
 import numpy.typing as npt
@@ -59,7 +59,7 @@ class SupervisedModel:
         else:
             self._target_ext = None
 
-        if self.task_type == "binary_classification" and not self.decision_threshold:
+        if self.task_type == "binary_classification" and self.decision_threshold is None:
             self.decision_threshold = 0.5
 
     @property
