@@ -1,1 +1,1 @@
-from src.ml_project_template.logging.setup import setup_logging
+from .setup import setup_logging

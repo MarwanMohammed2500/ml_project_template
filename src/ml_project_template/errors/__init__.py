@@ -1,1 +1,1 @@
-from src.ml_project_template.errors.exceptions import InvalidEnvVarError, InvalidModelPathError
+from .exceptions import InvalidEnvVarError, InvalidModelPathError

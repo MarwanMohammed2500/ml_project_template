@@ -1,2 +1,2 @@
-from src.ml_project_template.configs.loader import load_configs
-from src.ml_project_template.configs.validator import validate_env_vars
+from .loader import load_configs
+from .validator import validate_env_vars

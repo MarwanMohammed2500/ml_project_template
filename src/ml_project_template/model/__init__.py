@@ -1,2 +1,2 @@
-from src.ml_project_template.model.loader import SupervisedModel
-from src.ml_project_template.model.trainer import SupervisedModelTrainer
+from .loader import SupervisedModel
+from .trainer import SupervisedModelTrainer
