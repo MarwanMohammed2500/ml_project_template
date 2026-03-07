@@ -1,4 +1,4 @@
-from src.ml_project_template.models import AppConfigs
+from src.ml_project_template.schemas.app_configs import AppConfigs
 from pydantic_yaml import parse_yaml_file_as
 
 
