@@ -10,7 +10,7 @@ from src.ml_project_template.configs.model_configs import (
 model = None
 
 
-def _load_model():
+def load_model():
     global model
     if model is None:
         model = SupervisedModel(
@@ -23,5 +23,4 @@ def _load_model():
 
 
 def predict(request_input):
-    _load_model()
     return model.predict(input=request_input)
