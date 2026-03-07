@@ -19,14 +19,14 @@ class SupervisedModel:
         model_type: Literal["pt", "onnx"]:
             Whether you're loading a torch model or an onnx model
 
-        task_type: Literal["binary_classification", "multiclass_classification", "regression"]:
+        task_type: Literal["binary", "multiclass", "regression"]:
             The task that the model performs
 
         class_map: dict[int, str]:
             The class map/label map of the classifier
 
         decision_threshold: Optional[float] = None:
-            The threshold to make a decision in binary classifiers, leave as None if task_type != binary_classification. If you don't set it for binary classifiers, it defaults to 0.5
+            The threshold to make a decision in binary classifiers, leave as None if task_type != binary. If you don't set it for binary classifiers, it defaults to 0.5
 
         torch_weights_only: bool = False:
             Whether to load only weights of the model or to load the full model graph (never set this to true if you don't know the source of the model)
@@ -36,9 +36,7 @@ class SupervisedModel:
         self,
         model_path: str,
         model_type: Literal["pt", "onnx"],
-        task_type: Literal[
-            "binary_classification", "multiclass_classification", "regression"
-        ],
+        task_type: Literal["binary", "multiclass", "regression"],
         class_map: dict[int, str],
         decision_threshold: Optional[float] = None,
         torch_weights_only: bool = False,
@@ -59,10 +57,7 @@ class SupervisedModel:
         else:
             self._target_ext = None
 
-        if (
-            self.task_type == "binary_classification"
-            and self.decision_threshold is None
-        ):
+        if self.task_type == "binary" and self.decision_threshold is None:
             self.decision_threshold = 0.5
 
     @property
@@ -117,14 +112,12 @@ class SupervisedModel:
 
     def _process_classifier_output(self, logits: npt.NDArray[float]) -> (str, float):
         if not isinstance(logits, np.ndarray):
-            logits = np.array(
-                logits
-            )
-        if self.task_type == "binary_classification":
+            logits = np.array(logits)
+        if self.task_type == "binary":
             prob = float(1 / (1 + np.exp(-logits)))  # Sigmoid function
             pred = int(prob > self.decision_threshold)
             output_class = self.class_map[pred]
-        elif self.task_type == "multiclass_classification":
+        elif self.task_type == "multiclass":
             probs = softmax(logits, axis=-1)
             pred = int(np.argmax(probs, axis=-1).item())
             prob = float(probs.squeeze()[pred])

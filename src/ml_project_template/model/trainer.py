@@ -1,5 +1,7 @@
 from src.ml_project_template.errors import InvalidModelPathError
-from src.ml_project_template.metrics import set_classification_metrics # add regression related ones when implementing regression training.
+from src.ml_project_template.metrics import (
+    set_classification_metrics,
+)  # add regression related ones when implementing regression training.
 from typing import Literal, Optional, Any
 from tqdm.auto import tqdm
 import logging
@@ -57,9 +59,7 @@ class SupervisedModelTrainer:
 
     def __init__(
         self,
-        task_type: Literal[
-            "regression", "binary", "multiclass"
-        ],
+        task_type: Literal["regression", "binary", "multiclass"],
         num_epochs: int,
         loss_fn: torch.nn.modules.loss,
         optimizer: torch.optim,
@@ -91,10 +91,10 @@ class SupervisedModelTrainer:
         self.loss_fn = loss_fn
         self.verbose = verbose
         self.model = model
-        
+
         self.accuracy_score, self.f1_score, _, _ = set_classification_metrics(
-        num_classes=self.num_classes, task=self.task_type, device=self.device
-    )
+            num_classes=self.num_classes, task=self.task_type, device=self.device
+        )
 
         if self.task_type == "binary":
             if self.binary_decision_threshold is None:
@@ -141,23 +141,23 @@ class SupervisedModelTrainer:
 
             if self.task_type == "binary":
                 probs = torch.sigmoid(batch_logits)
-                preds = (probs > self.binary_classifier_threshold)
+                preds = probs > self.binary_classifier_threshold
             elif self.task_type == "multiclass":
                 probs = torch.softmax(input=batch_logits, dim=-1)
                 preds = probs.argmax(dim=-1)
-            
+
             self.accuracy_score.update(preds, y_batch)
             self.f1_score.update(preds, y_batch)
             train_loss += batch_loss
 
         if self.lr_scheduler:
             self.lr_scheduler.step()
-        
+
         acc = self.accuracy_score.compute()
         f1 = self.f1_score.compute()
         self.accuracy_score.reset()
         self.f1_score.reset()
-        
+
         train_loss /= len(self.train_dataloader)
         return train_loss, acc, f1
 
@@ -174,20 +174,20 @@ class SupervisedModelTrainer:
 
             if self.task_type == "binary":
                 probs = torch.sigmoid(batch_logits)
-                preds = (probs > self.binary_classifier_threshold)
+                preds = probs > self.binary_classifier_threshold
             elif self.task_type == "multiclass":
                 probs = torch.softmax(input=batch_logits, dim=-1)
                 preds = probs.argmax(dim=-1)
-            
+
             self.accuracy_score.update(preds, y_batch)
             self.f1_score.update(preds, y_batch)
             test_loss += batch_loss
-        
+
         acc = self.accuracy_score.compute()
         f1 = self.f1_score.compute()
         self.accuracy_score.reset()
         self.f1_score.reset()
-        
+
         test_loss /= len(self.test_dataloader)
         return test_loss, acc, f1
 
@@ -223,9 +223,8 @@ class SupervisedModelTrainer:
                     logger.info(
                         "================================ Early Stopping ================================"
                     )
-                    early_stopper.load_best_model(self.model)
+                    self.early_stopper.load_best_model(self.model)
                     break
-
 
         logger.info(
             f""" Final Results:
