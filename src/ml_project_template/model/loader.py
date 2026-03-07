@@ -116,9 +116,10 @@ class SupervisedModel:
             self._load_model()
 
     def _process_classifier_output(self, logits: npt.NDArray[float]) -> (str, float):
-        logits = np.array(
-            logits
-        )  # So if the logits are torch tensors or numpy arrays it gets treated as a numpy array
+        if not isinstance(logits, np.ndarray):
+            logits = np.array(
+                logits
+            )
         if self.task_type == "binary_classification":
             prob = float(1 / (1 + np.exp(-logits)))  # Sigmoid function
             pred = int(prob > self.decision_threshold)
