@@ -1,0 +1,1 @@
+# Define model specific configurations here, if not needed, feel free to remove this file from your project
