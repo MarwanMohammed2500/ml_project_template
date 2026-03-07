@@ -1,0 +1,1 @@
+from src.ml_project_template.schemas.app_configs import AppConfigs
