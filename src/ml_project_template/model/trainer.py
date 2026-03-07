@@ -1,5 +1,5 @@
 from src.ml_project_template.errors import InvalidModelPathError
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 from tqdm.auto import tqdm
 import logging
 import torch
@@ -218,4 +218,75 @@ class SupervisedModelTrainer:
         else:
             raise InvalidModelPathError(
                 "The model path is invalid, please verify that the path exists."
+            )
+
+    def save_as_torch(self, save_path: str, model_name: str, dummy_input: Any):
+        if not model_name.endswith(".pt"):
+            model_name += ".pt"
+        if len(save_path) == 0:
+            raise ValueError("save_path should not be empty")
+
+        if os.path.dirname(save_path):
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            save_path = os.path.join(save_path, model_name)
+        else:
+            raise ValueError("save_path must be a valid directory path")
+
+        try:
+            model = torch.jit.script(self.model)
+        except Exception as e:
+            logger.warning(
+                f"Scripting Failed, falling back to tracing. Error details: {e}",
+                extra={"error_details": e, "format": "pt"},
+            )
+            self.model.to(self.device)
+            try:
+                model = torch.jit.trace(self.model, dummy_input)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to trace the model. Error details: {e}",
+                    extra={"error_details": e, "format": "pt"},
+                )
+                return
+        model.save(save_path)
+        logger.info(
+            f"Model exported to TorchScript successfully and saved to {save_path}",
+            extra={"save_path": save_path, "format": "pt"},
+        )
+
+    def save_as_onnx(self, save_path: str, model_name: str, dummy_input: Any):
+        if len(save_path) == 0:
+            raise ValueError("save_path should not be empty")
+
+        if os.path.dirname(save_path):
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            save_path = os.path.join(save_path, model_name)
+        else:
+            raise ValueError("save_path must be a valid directory path")
+
+        model = self.model.to("cpu")
+        dummy_input = dummy_input.to("cpu")
+        if not model_name.endswith(".onnx"):
+            model_name += ".onnx"
+        try:
+            torch.onnx.export(
+                model,
+                dummy_input,
+                save_path,
+                dynamo=True,
+                input_names=["input"],
+                output_names=["output"],
+                dynamic_shapes={
+                    "input": {0: "batch_size"},
+                    "output": {0: "batch_size"},
+                },
+            )
+            logger.info(
+                f"Model exported to ONNX successfully and saved to {save_path}",
+                extra={"save_path": save_path, "format": "onnx"},
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to export model to ONNX. Error details: {e}",
+                extra={"error_details": e, "format": "onnx"},
             )
