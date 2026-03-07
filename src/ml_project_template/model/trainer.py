@@ -223,6 +223,7 @@ class SupervisedModelTrainer:
                     logger.info(
                         "================================ Early Stopping ================================"
                     )
+                    early_stopper.load_best_model(self.model)
                     break
 
 
