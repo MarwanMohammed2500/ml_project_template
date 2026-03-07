@@ -1,9 +1,10 @@
-from src.ml_project_template.errors.exceptions import InvalidEnvVarError
+from src.ml_project_template.errors import InvalidEnvVarError
 from dotenv import load_dotenv
 import os
 import re
 
 load_dotenv()
+
 
 def validate_env_vars():
     """
