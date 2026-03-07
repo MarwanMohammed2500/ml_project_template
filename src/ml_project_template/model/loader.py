@@ -1,4 +1,4 @@
-from src.ml_project_template.exceptions import InvalidModelPathError
+from src.ml_project_template.errors.exceptions import InvalidModelPathError
 from typing import Literal, Optional, Any
 from scipy.special import softmax
 import numpy.typing as npt

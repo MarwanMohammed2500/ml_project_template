@@ -1,22 +1,9 @@
-from src.ml_project_template.exceptions import InvalidEnvVarError
-from src.ml_project_template.models import AppConfigs
-from pydantic_yaml import parse_yaml_file_as
+from src.ml_project_template.errors.exceptions import InvalidEnvVarError
 from dotenv import load_dotenv
 import os
 import re
 
 load_dotenv()
-
-##############################
-# You can define your environment variables here and import them anywhere in the project.
-# Either this, or you can define a configs.py file for each sub-module to keep things clean and modular, if that is needed, but only for loading env variables.
-# Keeping load_configs here is better
-##############################
-
-
-def load_configs(yaml_path: str):
-    return parse_yaml_file_as(AppConfigs, yaml_path)
-
 
 def validate_env_vars():
     """
