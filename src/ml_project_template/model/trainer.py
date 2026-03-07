@@ -1,4 +1,5 @@
 from src.ml_project_template.errors import InvalidModelPathError
+from src.ml_project_template.metrics import set_classification_metrics # add regression related ones when implementing regression training.
 from typing import Literal, Optional, Any
 from tqdm.auto import tqdm
 import logging
@@ -14,7 +15,7 @@ class SupervisedModelTrainer:
 
     ---
     Args:
-        task_type:Literal["regression", "binary_classification", "multiclass_classification"]:
+        task_type:Literal["regression", "binary", "multiclass"]:
             The type of task the model is trained for, used to determine how it will be trained
 
         num_epochs: int:
@@ -57,13 +58,14 @@ class SupervisedModelTrainer:
     def __init__(
         self,
         task_type: Literal[
-            "regression", "binary_classification", "multiclass_classification"
+            "regression", "binary", "multiclass"
         ],
         num_epochs: int,
         loss_fn: torch.nn.modules.loss,
         optimizer: torch.optim,
         train_dataloader: torch.utils.data.DataLoader,
         test_dataloader: torch.utils.data.DataLoader,
+        num_classes: int,
         model: Optional[torch.nn.Module] = None,
         pretrained_model_path: Optional[str] = None,
         lr_scheduler: Optional[torch.optim.lr_scheduler] = None,
@@ -82,14 +84,19 @@ class SupervisedModelTrainer:
         self.test_dataloader = test_dataloader
         self.early_stopper = early_stopper
         self.lr_scheduler = lr_scheduler
+        self.num_classes = num_classes
         self.num_epochs = num_epochs
         self.task_type = task_type
         self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.verbose = verbose
         self.model = model
+        
+        self.accuracy_score, self.f1_score, _, _ = set_classification_metrics(
+        num_classes=self.num_classes, task=self.task_type, device=self.device
+    )
 
-        if self.task_type == "binary_classification":
+        if self.task_type == "binary":
             if self.binary_decision_threshold is None:
                 self.binary_decision_threshold = 0.5
         elif self.task_type == "regression":
@@ -131,20 +138,28 @@ class SupervisedModelTrainer:
             )  # non_blocking works when the dataloader is set with pin_memory = True so make sure to do that for effeciency
 
             batch_loss, batch_logits = self._training_step(X_batch, y_batch)
-            train_loss += batch_loss
 
-            # Will un-comment it once I figure out metrics setup
-            # if self.task_type == "binary_classification":
-            #     probs = torch.sigmoid(batch_logits)
-            #     preds = (probs > self.binary_classifier_threshold)
-            # elif self.task_type == "multiclass_classification":
-            #     probs = torch.softmax(input=batch_logits, dim=-1)
-            #     preds = probs.argmax(dim=-1)
+            if self.task_type == "binary":
+                probs = torch.sigmoid(batch_logits)
+                preds = (probs > self.binary_classifier_threshold)
+            elif self.task_type == "multiclass":
+                probs = torch.softmax(input=batch_logits, dim=-1)
+                preds = probs.argmax(dim=-1)
+            
+            self.accuracy_score.update(preds, y_batch)
+            self.f1_score.update(preds, y_batch)
+            train_loss += batch_loss
 
         if self.lr_scheduler:
             self.lr_scheduler.step()
+        
+        acc = self.accuracy_score.compute()
+        f1 = self.f1_score.compute()
+        self.accuracy_score.reset()
+        self.f1_score.reset()
+        
         train_loss /= len(self.train_dataloader)
-        return train_loss
+        return train_loss, acc, f1
 
     def _test_loop(self):
         test_loss = 0.0
@@ -157,16 +172,24 @@ class SupervisedModelTrainer:
 
             batch_loss, batch_logits = self._testing_step(X_batch, y_batch)
 
-            # Will un-comment it once I figure out metrics setup
-            # if self.task_type == "binary_classification":
-            #     probs = torch.sigmoid(batch_logits)
-            #     preds = (probs > self.binary_classifier_threshold)
-            # elif self.task_type == "multiclass_classification":
-            #     probs = torch.softmax(input=batch_logits, dim=-1)
-            #     preds = probs.argmax(dim=-1)
+            if self.task_type == "binary":
+                probs = torch.sigmoid(batch_logits)
+                preds = (probs > self.binary_classifier_threshold)
+            elif self.task_type == "multiclass":
+                probs = torch.softmax(input=batch_logits, dim=-1)
+                preds = probs.argmax(dim=-1)
+            
+            self.accuracy_score.update(preds, y_batch)
+            self.f1_score.update(preds, y_batch)
             test_loss += batch_loss
+        
+        acc = self.accuracy_score.compute()
+        f1 = self.f1_score.compute()
+        self.accuracy_score.reset()
+        self.f1_score.reset()
+        
         test_loss /= len(self.test_dataloader)
-        return test_loss
+        return test_loss, acc, f1
 
     def train(self):
         """
@@ -181,14 +204,16 @@ class SupervisedModelTrainer:
         """
         self.model.to(self.device, non_blocking=True)
         for epoch in tqdm(range(self.num_epochs)):
-            train_loss = self._train_loop()
-            test_loss = self._test_loop()
+            train_loss, train_accuracy_score, train_f1_score = self._train_loop()
+            test_loss, test_accuracy_score, test_f1_score = self._test_loop()
 
             if epoch % 10 == 0:
                 if self.verbose:
                     logger.info(
                         f""" Epoch {epoch}
-                        Training Loss = {train_loss:.2f} | Testing Loss = {test_loss:.2f}
+                        Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
+                        Training Accuracy = {train_accuracy_score:.2%}\t| Testing Accuracy = {test_accuracy_score:.2%}
+                        Training F1-Score = {train_f1_score:.2%}\t| Testing F1-Score = {test_f1_score:.2%}
                         __________________________________________________________________________________
                         """
                     )
@@ -200,9 +225,12 @@ class SupervisedModelTrainer:
                     )
                     break
 
+
         logger.info(
             f""" Final Results:
-            Training Loss = {train_loss:.2f} | Testing Loss = {test_loss:.2f}
+            Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
+            Training Accuracy = {train_accuracy_score:.2%}\t| Testing Accuracy = {test_accuracy_score:.2%}
+            Training F1-Score = {train_f1_score:.2%}\t| Testing F1-Score = {test_f1_score:.2%}
             """
         )
         return train_loss, test_loss
