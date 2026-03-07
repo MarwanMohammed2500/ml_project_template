@@ -4,5 +4,5 @@ class InvalidEnvVarError(Exception):
 
 
 class InvalidModelPathError(Exception):
-    def __init__(sef, message):
+    def __init__(self, message):
         super().__init__(message)
