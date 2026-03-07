@@ -25,8 +25,8 @@ class SupervisedModel:
         class_map: dict[int, str]:
             The class map/label map of the classifier
 
-        classifier_thresh: Optional[float] = None:
-            The threshold to make a decision in binary classifiers, leave as None if task_type != binary_classification
+        decision_threshold: Optional[float] = None:
+            The threshold to make a decision in binary classifiers, leave as None if task_type != binary_classification. If you don't set it for binary classifiers, it defaults to 0.5
 
         torch_weights_only: bool = False:
             Whether to load only weights of the model or to load the full model graph (never set this to true if you don't know the source of the model)
@@ -40,15 +40,15 @@ class SupervisedModel:
             "binary_classification", "multiclass_classification", "regression"
         ],
         class_map: dict[int, str],
-        classifier_thresh: Optional[float] = None,
+        decision_threshold: Optional[float] = None,
         torch_weights_only: bool = False,
     ):
+        self.torch_weights_only = torch_weights_only
+        self.decision_threshold = decision_threshold
         self.model_path = model_path
         self.model_type = model_type
         self.task_type = task_type
         self.class_map = class_map
-        self.classifier_thresh = classifier_thresh
-        self.torch_weights_only = torch_weights_only
 
         self._model = None
 
@@ -58,6 +58,9 @@ class SupervisedModel:
             self._target_ext = ".onnx"
         else:
             self._target_ext = None
+
+        if self.task_type == "binary_classification" and not self.decision_threshold:
+            self.decision_threshold = 0.5
 
     @property
     def loaded(self):
@@ -102,7 +105,7 @@ class SupervisedModel:
                 "The model path is invalid, please verify if the model has the correct extention, or that the path exists."
             )
 
-    def preload():
+    def preload(self):
         """
         loads the model if it is not loaded yet. If not called, the model is first loaded at the first inference call
         """
@@ -115,7 +118,7 @@ class SupervisedModel:
         )  # So if the logits are torch tensors or numpy arrays it gets treated as a numpy array
         if self.task_type == "binary_classification":
             prob = float(1 / (1 + np.exp(-logits)))  # Sigmoid function
-            pred = int(prob > self.classifier_thresh)
+            pred = int(prob > self.decision_threshold)
             output_class = self.class_map[pred]
         elif self.task_type == "multiclass_classification":
             probs = softmax(logits, axis=-1)
@@ -129,53 +132,10 @@ class SupervisedModel:
         if self.model_type == "onnx":
             return self._process_classifier_output(
                 self._model.run(
-                    [self._output_name, {self._input_name: kwargs["input"]}]
+                    [self._output_name], {self._input_name: kwargs["input"]}
                 )[0]
             )
         elif self.model_type == "pt":
-            return self._process_classifier_output(self._model(*args, **kwargs))
-
-    def train(
-        self,
-        num_epochs: int,
-        loss_fn: torch.nn.modules.loss,
-        optimizer: torch.optim,
-        train_dataloader: torch.utils.data.DataLoader,
-        test_dataloader: torch.utils.data.DataLoader,
-        lr_scheduler: Optional[torch.optim.lr_scheduler] = None,
-        early_stopping_class: Optional[type] = None,
-        verbose: bool = True,
-    ):
-        """
-        Trains the loaded model (or loads it first if it is not loaded already)
-        
-        ---
-        Args:
-            num_epochs: int:
-                The number of epochs to train the model for
-            
-            loss_fn: torch.nn.modules.loss:
-                The loss function to use
-            
-            optimizer: torch.optim:
-                The optimizer to use
-            
-            train_dataloader: torch.utils.data.DataLoader:
-                The training set in a PyTorch DataLoader
-            
-            test_dataloader: torch.utils.data.DataLoader:
-                The test set in a PyTorch DataLoader
-                
-            lr_scheduler: Optional[torch.optim.lr_scheduler] = None:
-                The learning rate scheduler, defaults to None
-            
-            early_stopping_class: Optional[type] = None:
-                Early Stopping class to use, defaults to None
-            
-            verbose: bool = True:
-                Print the metrics logged while training or not
-        """
-        self.preload()
-        raise NotImplementedError(
-            "This method is yet to be implemented, for now, train the model separately"
-        )
+            self._model.eval()
+            with torch.inference_mode():
+                return self._process_classifier_output(self._model(*args, **kwargs))

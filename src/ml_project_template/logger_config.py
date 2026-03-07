@@ -77,7 +77,7 @@ def setup_logging(
         formatter = JsonFormatter()
     else:
         formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+            "[%(levelname)s] %(asctime)s - %(name)s: %(message)s"
         )
 
     stream_handler.setFormatter(formatter)
