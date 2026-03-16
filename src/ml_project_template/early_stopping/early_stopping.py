@@ -42,3 +42,9 @@ class EarlyStopping:
                 "Calling this method before running early stopping is not permitted"
             )
         model.load_state_dict(self.best_model_state)
+    def reset(self):
+        """Resets the early stopping state for a new training phase."""
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.best_model_state = None
