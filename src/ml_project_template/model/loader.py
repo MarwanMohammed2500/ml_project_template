@@ -1,54 +1,29 @@
-from src.ml_project_template.errors import InvalidModelPathError
-from typing import Literal, Optional, Any
-from scipy.special import softmax
+import os
+from typing import Any, Literal, Optional
+import numpy as np
 import numpy.typing as npt
 import onnxruntime as ort
-import numpy as np
 import torch
-import os
+from scipy.special import softmax
+from src.ml_project_template.errors import InvalidModelPathError
 
 
-class SupervisedModel:
-    """
-    This class acts as an abstraction layer for supervised model loading, inference, and logits processing
-
-    Args:
-        model_path: str:
-            The path to the model's file
-
-        model_type: Literal["pt", "onnx"]:
-            Whether you're loading a torch model or an onnx model
-
-        task_type: Literal["binary", "multiclass", "regression"]:
-            The task that the model performs
-
-        class_map: dict[int, str]:
-            The class map/label map of the classifier
-
-        decision_threshold: Optional[float] = None:
-            The threshold to make a decision in binary classifiers, leave as None if task_type != binary. If you don't set it for binary classifiers, it defaults to 0.5
-
-        torch_weights_only: bool = False:
-            Whether to load only weights of the model or to load the full model graph (never set this to true if you don't know the source of the model)
-    """
+class _Model:
+    """Base Class for all model classes"""
 
     def __init__(
         self,
         model_path: str,
         model_type: Literal["pt", "onnx"],
-        task_type: Literal["binary", "multiclass", "regression"],
-        class_map: dict[int, str],
-        decision_threshold: Optional[float] = None,
         torch_weights_only: bool = False,
     ):
         self.torch_weights_only = torch_weights_only
-        self.decision_threshold = decision_threshold
         self.model_path = model_path
         self.model_type = model_type
-        self.task_type = task_type
-        self.class_map = class_map
 
         self._model = None
+        self._input_name = None
+        self._output_name = None
 
         if self.model_type == "pt":
             self._target_ext = ".pt"
@@ -56,9 +31,6 @@ class SupervisedModel:
             self._target_ext = ".onnx"
         else:
             self._target_ext = None
-
-        if self.task_type == "binary" and self.decision_threshold is None:
-            self.decision_threshold = 0.5
 
     @property
     def loaded(self):
@@ -72,7 +44,7 @@ class SupervisedModel:
         """
         Use the raw model to access model specific methods and attributes
         """
-        self._preload()
+        self.preload()
         return self._model
 
     def _verify_model_path(self) -> bool:
@@ -110,6 +82,56 @@ class SupervisedModel:
         if self._model is None:
             self._load_model()
 
+
+class SupervisedModel(_Model):
+    """
+    This class acts as an abstraction layer for supervised model loading, inference,
+    and logits processing
+
+    Args:
+        model_path: str:
+            The path to the model's file
+
+        model_type: Literal["pt", "onnx"]:
+            Whether you're loading a torch model or an onnx model
+
+        task_type: Literal["binary", "multiclass", "regression"]:
+            The task that the model performs
+
+        class_map: dict[int, str]:
+            The class map/label map of the classifier
+
+        decision_threshold: Optional[float] = None:
+            The threshold to make a decision in binary classifiers.
+            Leave as None if task_type != binary.
+            If you don't set it for binary classifiers, it defaults to 0.5
+
+        torch_weights_only: bool = False:
+            Whether to load only weights of the model or to load the full model graph
+            **(never set this to true if you don't know the source of the model)**
+    """
+
+    def __init__(
+        self,
+        task_type: Literal["binary", "multiclass", "regression"],
+        class_map: dict[int, str],
+        model_path: str,
+        model_type: Literal["pt", "onnx"],
+        torch_weights_only: bool = False,
+        decision_threshold: Optional[float] = None,
+    ):
+        super().__init__(
+            model_path=model_path,
+            model_type=model_type,
+            torch_weights_only=torch_weights_only
+        )
+        self.decision_threshold = decision_threshold
+        self.task_type = task_type
+        self.class_map = class_map
+
+        if self.task_type == "binary" and self.decision_threshold is None:
+            self.decision_threshold = 0.5
+
     def _process_classifier_output(self, logits: npt.NDArray[float]) -> (str, float):
         if not isinstance(logits, np.ndarray):
             logits = np.array(logits)
@@ -122,12 +144,15 @@ class SupervisedModel:
             pred = int(np.argmax(probs, axis=-1).item())
             prob = float(probs.squeeze()[pred])
             output_class = self.class_map[pred]
+        else:
+            return None, None
         return output_class, prob
 
-    def predict(self, *args: Any, **kwargs: Any):
+    def predict(self, *args: Any, **kwargs: Any) -> tuple[Any, float]:
+        """perform inference using the loaded model"""
         self.preload()
         if self.model_type == "onnx":
-            return self._process_classifier_output(
+            output, prob = self._process_classifier_output(
                 self._model.run(
                     [self._output_name], {self._input_name: kwargs["input"]}
                 )[0]
@@ -135,4 +160,9 @@ class SupervisedModel:
         elif self.model_type == "pt":
             self._model.eval()
             with torch.inference_mode():
-                return self._process_classifier_output(self._model(*args, **kwargs))
+                output, prob = self._process_classifier_output(
+                    self._model(*args, **kwargs)
+                )
+        else:
+            return None, None
+        return output, prob
