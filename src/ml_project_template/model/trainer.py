@@ -92,14 +92,15 @@ class SupervisedModelTrainer:
         self.verbose = verbose
         self.model = model
 
-        self.accuracy_score, self.f1_score, _, _ = set_classification_metrics(
-            num_classes=self.num_classes, task=self.task_type, device=self.device
-        )
+        if self.task_type != "regression":
+            self.accuracy_score, self.f1_score, _, _ = set_classification_metrics(
+                num_classes=self.num_classes, task=self.task_type, device=self.device
+            )
 
-        if self.task_type == "binary":
-            if self.binary_decision_threshold is None:
-                self.binary_decision_threshold = 0.5
-        elif self.task_type == "regression":
+            if self.task_type == "binary":
+                if self.binary_decision_threshold is None:
+                    self.binary_decision_threshold = 0.5
+        if self.task_type == "regression":
             raise NotImplementedError(
                 "Still didn't implement training regression models"
             )
