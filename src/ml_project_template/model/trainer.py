@@ -305,8 +305,12 @@ class Trainer:
 
             if epoch % 10 == 0:
                 if self.verbose:
-                    train_metrics_str = " | ".join(f"{k.title()}: {v:.2%}" for k, v in train_metrics.items())
-                    test_metrics_str = " | ".join(f"{k.title()}: {v:.2%}" for k, v in test_metrics.items())
+                    train_metrics_str = " | ".join(
+                        f"{k.title()}: {v:.2%}" for k, v in train_metrics.items()
+                    )
+                    test_metrics_str = " | ".join(
+                        f"{k.title()}: {v:.2%}" for k, v in test_metrics.items()
+                    )
                     logger.info(
                         f""" Epoch {epoch}
                         Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
@@ -334,10 +338,11 @@ class Trainer:
         )
         return train_loss, test_loss
 
+
 class _TrainingStrategy:
     """
     This class acts as an abstraction layer for a training strategy, it defines the step function that performs a training step and returns the loss and the predictions to log the metrics with.
-    
+
     Args:
         loss_fn: torch.nn.Module:
             The loss function to use
@@ -357,15 +362,17 @@ class _TrainingStrategy:
         loss_fn: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         model_instance: torch.nn.Module,
-        ):
+    ):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.model = model_instance
 
-    def step(self, X: torch.Tensor, y: torch.Tensor, train: bool) -> tuple[float, torch.Tensor]:
+    def step(
+        self, X: torch.Tensor, y: torch.Tensor, train: bool
+    ) -> tuple[float, torch.Tensor]:
         """Performs a training step, returns (loss, processed_predictions)"""
         raise NotImplementedError("This method should be implemented by a subclass")
-    
+
     def _calculate_step(self, X: torch.Tensor, y: torch.Tensor, train: bool):
         context = torch.enable_grad() if train else torch.inference_mode()
         with context:
@@ -376,6 +383,7 @@ class _TrainingStrategy:
                 loss.backward()
                 self.optimizer.step()
         return loss, logits
+
 
 class _BinaryClassifierTrainer(_TrainingStrategy):
     """
@@ -427,12 +435,13 @@ class _BinaryClassifierTrainer(_TrainingStrategy):
         assert self.model is not None, (
             "Model is not loaded, cannot perform training step"
         )
-        
+
         loss, logits = self._calculate_step(X, y, train)
 
         probs = torch.sigmoid(logits)
         preds = probs > self.binary_decision_threshold
         return loss.item(), preds
+
 
 class _MulticlassClassifierTrainer(_TrainingStrategy):
     """
@@ -484,10 +493,9 @@ class _MulticlassClassifierTrainer(_TrainingStrategy):
         assert self.model is not None, (
             "Model is not loaded, cannot perform training step"
         )
-        
+
         loss, logits = self._calculate_step(X, y, train)
 
         probs = torch.softmax(input=logits, dim=-1)
         preds = probs.argmax(dim=-1)
         return loss.item(), preds
-            

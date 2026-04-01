@@ -52,7 +52,7 @@ def classification_report(
     y_pred: torch.Tensor,
     task: Literal["multiclass", "binary"],
     num_classes: Optional[int] = None,
-    device: torch.device =torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> dict[str, float]:
     """
     Creates a classification report using accuracy, precision, recall, and f1-score

@@ -1,4 +1,8 @@
-from torchmetrics import MeanSquaredError, NormalizedRootMeanSquaredError, MetricCollection
+from torchmetrics import (
+    MeanSquaredError,
+    NormalizedRootMeanSquaredError,
+    MetricCollection,
+)
 from typing import Literal
 import torch
 
@@ -85,6 +89,10 @@ def regression_report(
     )
 
     return {
-        "Normalized Root Mean Squared Error": metrics["Normalized Root Mean Squared Error"](y_pred, y_true).item(),
-        "Mean Squared Error" if mse_squared else "Root Mean Squared Error": metrics["Mean Squared Error" if mse_squared else "Root Mean Squared Error"](y_pred, y_true).item(),
+        "Normalized Root Mean Squared Error": metrics[
+            "Normalized Root Mean Squared Error"
+        ](y_pred, y_true).item(),
+        "Mean Squared Error" if mse_squared else "Root Mean Squared Error": metrics[
+            "Mean Squared Error" if mse_squared else "Root Mean Squared Error"
+        ](y_pred, y_true).item(),
     }
