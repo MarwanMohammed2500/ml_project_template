@@ -47,43 +47,38 @@ def set_classification_metrics(
     ).to(device)
 
 
-# def classification_report(
-#     y_true: torch.Tensor,
-#     y_pred: torch.Tensor,
-#     task: Literal["multiclass", "binary"],
-#     num_classes: Optional[int] = None,
-#     device: torch.device =torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-# ) -> dict[str, float]:
-#     """
-#     Creates a classification report using accuracy, precision, recall, and f1-score
+def classification_report(
+    y_true: torch.Tensor,
+    y_pred: torch.Tensor,
+    task: Literal["multiclass", "binary"],
+    num_classes: Optional[int] = None,
+    device: torch.device =torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+) -> dict[str, float]:
+    """
+    Creates a classification report using accuracy, precision, recall, and f1-score
 
-#     Args:
-#         y_true: torch.Tensor:
-#             The targets
+    Args:
+        y_true: torch.Tensor:
+            The targets
 
-#         y_pred: torch.Tensor:
-#             The model's predictions
+        y_pred: torch.Tensor:
+            The model's predictions
 
-#         task: Literal["multiclass", "binary"]:
-#             The classification task
+        task: Literal["multiclass", "binary"]:
+            The classification task
 
-#         num_classes: Optional[int] = None:
-#             Number of classes, must be set if task == multiclass
+        num_classes: Optional[int] = None:
+            Number of classes, must be set if task == multiclass
 
-#         device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"):
-#             The device to use
-#     """
-#     accuracy_score, f1_score, precision, recall = set_classification_metrics(
-#         num_classes=num_classes, task=task, device=device
-#     )
+        device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"):
+            The device to use
+    """
+    metrics = set_classification_metrics(
+        num_classes=num_classes, task=task, device=device
+    )
 
-#     y_true = y_true.to(device)
-#     y_pred = y_pred.to(device)
+    y_true = y_true.to(device)
+    y_pred = y_pred.to(device)
 
-#     report = {
-#         "Accuracy": accuracy_score(y_pred, y_true).item(),
-#         "Precision": precision(y_pred, y_true).item(),
-#         "Recall": recall(y_pred, y_true).item(),
-#         "F1-Score": f1_score(y_pred, y_true).item(),
-#     }
-#     return report
+    report = metrics(y_pred, y_true)
+    return report

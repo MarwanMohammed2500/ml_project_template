@@ -1,4 +1,4 @@
-from torchmetrics import MeanSquaredError, NormalizedRootMeanSquaredError
+from torchmetrics import MeanSquaredError, NormalizedRootMeanSquaredError, MetricCollection
 from typing import Literal
 import torch
 
@@ -33,7 +33,12 @@ def set_regression_metrics(
         device=device,
     )
     mse = MeanSquaredError(squared=mse_squared, num_outputs=num_outputs, device=device)
-    return nrmse, mse
+    return MetricCollection(
+        {
+            "Normalized Root Mean Squared Error": nrmse,
+            "Mean Squared Error" if mse_squared else "Root Mean Squared Error": mse,
+        }
+    ).to(device)
 
 
 def regression_report(
@@ -68,16 +73,11 @@ def regression_report(
         mse_squared:bool=True:
             If True returns MSE value, if False returns RMSE value.
     """
-    if not isinstance(y_true, torch.Tensor):
-        y_true = torch.tensor(y_true).to(device)
-
-    if not isinstance(y_pred, torch.Tensor):
-        y_pred = torch.tensor(y_pred).to(device)
 
     y_true = y_true.to(device)
     y_pred = y_pred.to(device)
 
-    nrmse, mse = set_regression_metrics(
+    metrics = set_regression_metrics(
         num_outputs=num_outputs,
         device=device,
         nrmse_normalization_technique=nrmse_normalization_technique,
@@ -85,8 +85,6 @@ def regression_report(
     )
 
     return {
-        "Normalized Root Mean Squared Error": nrmse(y_pred, y_true).item(),
-        "Mean Squared Error" if mse_squared else "Root Mean Squared Error": mse(
-            y_pred, y_true
-        ).item(),
+        "Normalized Root Mean Squared Error": metrics["Normalized Root Mean Squared Error"](y_pred, y_true).item(),
+        "Mean Squared Error" if mse_squared else "Root Mean Squared Error": metrics["Mean Squared Error" if mse_squared else "Root Mean Squared Error"](y_pred, y_true).item(),
     }
