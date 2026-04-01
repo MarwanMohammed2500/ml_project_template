@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.ml_project_template.api.routes import api
-from src.ml_project_template.api.inference import load_model
+from ml_project_template.services.inference import load_model
 
 
 @asynccontextmanager

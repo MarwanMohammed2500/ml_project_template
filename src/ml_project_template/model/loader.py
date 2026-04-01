@@ -152,7 +152,7 @@ class _MulticlassClassifierModel:
         model_instance: ort.InferenceSession,
     ):
         self.model_instance = model_instance
-        self.input_names: str = model_instance.get_inputs()[0].name  # type: ignore
+        self.input_names: list[str] = [inp.name for inp in model_instance.get_inputs()]  # type: ignore
         self.output_name: str = model_instance.get_outputs()[0].name  # type: ignore
 
     def _process_model_output(

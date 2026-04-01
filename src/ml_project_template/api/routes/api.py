@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from src.ml_project_template.schemas import ModelRequest, ModelResponse
-from src.ml_project_template.api.inference import predict
+from ml_project_template.services import predict
 
 router = APIRouter(prefix="/api", tags=["inference"])
 
