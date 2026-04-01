@@ -6,7 +6,7 @@ from src.ml_project_template.configs.model_configs import (
     TASK_TYPE,
     CLASS_MAP,
     DECISION_THRESHOLD,
-    PREPROC_PIPELINE
+    PREPROC_PIPELINE,
 )
 
 model = None
@@ -22,9 +22,10 @@ def load_model():
             task_type=TASK_TYPE,
             class_map=CLASS_MAP,
             decision_threshold=DECISION_THRESHOLD,
-            preproc_pipeline=PREPROC_PIPELINE
+            preproc_pipeline=PREPROC_PIPELINE,
         )
         model.preload()
+
 
 def predict(request_input: Any) -> tuple[Any, float]:
     """performs prediction using the loaded model"""

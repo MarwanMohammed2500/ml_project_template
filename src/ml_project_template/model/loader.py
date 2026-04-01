@@ -7,6 +7,7 @@ from scipy.special import softmax  # type: ignore
 from src.ml_project_template.errors import InvalidModelPathError
 from src.ml_project_template.services import Pipeline
 
+
 class Model:
     """Base Class for all model classes"""
 
@@ -24,7 +25,7 @@ class Model:
         self.args = args
         self.kwargs = kwargs
         self._strategy = None
-        
+
         self.preproc_pipeline = preproc_pipeline
 
     @property
@@ -90,7 +91,11 @@ class Model:
         self.preload()
         assert self._strategy is not None
         if self.preproc_pipeline is not None:
-            preproc_inputs = {name: kwargs[name] for name in self._strategy.input_names if name in kwargs}
+            preproc_inputs = {
+                name: kwargs[name]
+                for name in self._strategy.input_names
+                if name in kwargs
+            }
             preprocessed_data = self.preproc_pipeline(preproc_inputs)
             kwargs.update(preprocessed_data)
         return self._strategy.predict(**kwargs)
