@@ -1,17 +1,18 @@
 from src.ml_project_template.errors import InvalidEnvVarError
 from dotenv import load_dotenv
+from typing import Any
 import os
 import re
 
 load_dotenv()
 
 
-def validate_env_vars():
+def validate_env_vars() -> dict[str, Any]:
     """
     Validates environment variables by a given pattern/rule for each variable and returns the valid vars. If any environment variable is not valid, it fails.
     """
-    errors = []
-    validated_vars = {}
+    errors: list[str] = []
+    validated_vars: dict[str, Any] = {}
     ENV_SCHEMA = {
         "APP_ENV": re.compile("^(development|staging|production)$"),
     }

@@ -1,4 +1,5 @@
 from src.ml_project_template.model import SupervisedModel
+from typing import Any
 from src.ml_project_template.configs.model_configs import (
     MODEL_PATH,
     MODEL_TYPE,
@@ -24,6 +25,9 @@ def load_model():
         model.preload()
 
 
-def predict(request_input):
+def predict(request_input: Any) -> tuple[Any, float]:
     """performs prediction using the loaded model"""
-    return model.predict(input=request_input)
+    if model is not None:
+        return model.predict(input=request_input)
+    else:
+        return None, 0.0
