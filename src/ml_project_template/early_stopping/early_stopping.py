@@ -1,3 +1,6 @@
+import torch
+
+
 class EarlyStopping:
     """
     Early Stopping class
@@ -18,7 +21,7 @@ class EarlyStopping:
         self.delta = delta
         self.counter = 0
 
-    def __call__(self, loss, model):
+    def __call__(self, loss: float, model: torch.nn.Module) -> None:
         score = -loss
 
         if self.best_score is None:
@@ -36,13 +39,14 @@ class EarlyStopping:
             self.best_model_state = model.state_dict()
             self.counter = 0
 
-    def load_best_model(self, model):
+    def load_best_model(self, model: torch.nn.Module) -> None:
         if self.best_model_state is None:
             raise ValueError(
                 "Calling this method before running early stopping is not permitted"
             )
         model.load_state_dict(self.best_model_state)
-    def reset(self):
+
+    def reset(self) -> None:
         """Resets the early stopping state for a new training phase."""
         self.counter = 0
         self.best_score = None

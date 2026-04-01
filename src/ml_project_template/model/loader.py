@@ -2,35 +2,27 @@ import os
 from typing import Any, Literal
 import numpy as np
 import numpy.typing as npt
-import onnxruntime as ort # type: ignore
-import torch
-from scipy.special import softmax # type: ignore
+import onnxruntime as ort  # type: ignore
+from scipy.special import softmax  # type: ignore
 from src.ml_project_template.errors import InvalidModelPathError
 
 
-class _Model:
+class Model:
     """Base Class for all model classes"""
 
     def __init__(
         self,
         model_path: str,
-        model_type: Literal["pt", "onnx"],
-        torch_weights_only: bool = False,
+        task_type: Literal["binary", "multiclass", "regression"] | None = None,
+        *args: Any,
+        **kwargs: Any,
     ):
-        self.torch_weights_only = torch_weights_only
         self.model_path = model_path
-        self.model_type = model_type
-
+        self.task_type = task_type
         self._model = None
-        self._input_name = None
-        self._output_name = None
-
-        if self.model_type == "pt":
-            self._target_ext = ".pt"
-        elif self.model_type == "onnx":
-            self._target_ext = ".onnx"
-        else:
-            self._target_ext = None
+        self.args = args
+        self.kwargs = kwargs
+        self._strategy = None
 
     @property
     def loaded(self):
@@ -50,26 +42,19 @@ class _Model:
     def _verify_model_path(self) -> bool:
         if not os.path.exists(self.model_path):
             return False
-        if self._target_ext is not None:
-            if self.model_path.endswith(self._target_ext):
-                return True
+        target_ext = ".onnx"
+        if self.model_path.endswith(target_ext):
+            return True
         return False
 
     def _load_model(self):
         if self._verify_model_path():
-            if self.model_type == "onnx":
-                self._model = ort.InferenceSession(
-                    self.model_path,
-                    providers=[
-                        "CPUExecutionProvider"
-                    ],  # if working with Nvidia GPU, install onnxruntime-gpu and add "CUDAExecutionProvider" as the first item in this list
-                )
-                self._input_name = self._model.get_inputs()[0].name # type: ignore
-                self._output_name = self._model.get_outputs()[0].name # type: ignore
-            elif self.model_type == "pt":
-                self._model = torch.load(
-                    self.model_path, weights_only=self.torch_weights_only
-                )
+            self._model = ort.InferenceSession(
+                self.model_path,
+                providers=[
+                    "CPUExecutionProvider"
+                ],  # if working with Nvidia GPU, install onnxruntime-gpu and add "CUDAExecutionProvider" as the first item in this list
+            )
         else:
             raise InvalidModelPathError(
                 "The model path is invalid, please verify if the model has the correct extention, or that the path exists."
@@ -82,83 +67,110 @@ class _Model:
         if self._model is None:
             self._load_model()
 
+        if self._strategy is None:
+            assert self._model is not None
+            if self.task_type == "binary":
+                self._strategy = _BinaryClassifierModel(
+                    model_instance=self._model,
+                    decision_threshold=self.kwargs.get("decision_threshold", 0.5),
+                )
+            elif self.task_type == "multiclass":
+                self._strategy = _MulticlassClassifierModel(model_instance=self._model)
+            elif self.task_type == "regression":
+                raise NotImplementedError("Regression task is not implemented yet")
+            else:
+                raise ValueError(
+                    "Invalid task type, supported values are: 'binary', 'multiclass', 'regression'"
+                )
 
-class SupervisedModel(_Model):
+    def predict(self, **kwargs: Any) -> tuple[int, float]:
+        self.preload()
+        assert self._strategy is not None
+        return self._strategy.predict(**kwargs)
+
+
+class _BinaryClassifierModel:
     """
-    This class acts as an abstraction layer for supervised model loading, inference,
+    This class acts as an abstraction layer for a binary classifier model loading, inference,
     and logits processing
 
     Args:
-        model_path: str:
-            The path to the model's file
-
-        model_type: Literal["pt", "onnx"]:
-            Whether you're loading a torch model or an onnx model
-
-        task_type: Literal["binary", "multiclass", "regression"]:
-            The task that the model performs
-
-        class_map: dict[int, str]:
-            The class map/label map of the classifier
-
-        decision_threshold: Optional[float] = None:
-            The threshold to make a decision in binary classifiers.
-            Leave as None if task_type != binary.
-            If you don't set it for binary classifiers, it defaults to 0.5
-
-        torch_weights_only: bool = False:
-            Whether to load only weights of the model or to load the full model graph
-            **(never set this to true if you don't know the source of the model)**
+        mode_instance: ort.InferenceSession:
+            The loaded model instance
     """
 
     def __init__(
         self,
-        task_type: Literal["binary", "multiclass", "regression"],
-        class_map: dict[int, str],
-        model_path: str,
-        model_type: Literal["pt", "onnx"],
-        torch_weights_only: bool = False,
+        model_instance: ort.InferenceSession,
         decision_threshold: float = 0.5,
     ):
-        super().__init__(
-            model_path=model_path,
-            model_type=model_type,
-            torch_weights_only=torch_weights_only
-        )
         self.decision_threshold = decision_threshold
-        self.task_type = task_type
-        self.class_map = class_map
-    
+        self.model_instance = model_instance
+        self.input_names: list[str] = [inp.name for inp in model_instance.get_inputs()]  # type: ignore
+        self.output_name: str = model_instance.get_outputs()[0].name  # type: ignore
+
     def sigmoid(self, x: npt.NDArray[np.float32]) -> float:
         return float(1 / (1 + np.exp(-x)))
-    
-    def _compare_logits_and_threshold(self, logits: npt.NDArray[np.float32]) -> tuple[int, float]:
+
+    def _compare_logits_and_threshold(
+        self, logits: npt.NDArray[np.float32]
+    ) -> tuple[int, float]:
         prob = self.sigmoid(logits)
         pred = int(prob > self.decision_threshold)
         return pred, prob
-    
-    def _process_classifier_output(self, logits: npt.NDArray[np.float32]) -> tuple[str, float] | tuple[None, None]:
-        if self.task_type == "binary":
-            pred, prob = self._compare_logits_and_threshold(logits)
-        elif self.task_type == "multiclass":
-            probs = softmax(logits, axis=-1)
-            pred = int(np.argmax(probs, axis=-1).item())
-            prob = float(probs.squeeze()[pred])
-        else:
-            return None, None
-        output_class = self.class_map[pred]
-        return output_class, prob
 
-    def predict(self, *args: Any, **kwargs: Any) -> tuple[Any | None, float | None]:
+    def _process_model_output(
+        self, logits: npt.NDArray[np.float32]
+    ) -> tuple[int, float]:
+        pred, prob = self._compare_logits_and_threshold(logits)
+        return pred, prob
+
+    def predict(self, **kwargs: Any) -> tuple[int, float]:
         """perform inference using the loaded model"""
-        self.preload()
         output, prob = None, None
-        if self.model_type == "onnx":
-            output, prob = self._process_classifier_output(
-                self._model.run([self._output_name], {self._input_name: kwargs["input"]})[0] # type: ignore
-            )
-        elif self.model_type == "pt":
-            self._model.eval() # type: ignore
-            with torch.inference_mode():
-                output, prob = self._process_classifier_output(self._model(*args, **kwargs).detach().cpu().numpy()) # type: ignore
+        assert isinstance(self.model_instance, ort.InferenceSession)
+        ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}
+        logits: np.ndarray = self.model_instance.run(  # type: ignore
+            [self.output_name], ort_inputs
+        )[0]
+        output, prob = self._process_model_output(np.array(logits, dtype=np.float32))
+        return output, prob
+
+
+class _MulticlassClassifierModel:
+    """
+    This class acts as an abstraction layer for a multiclass classifier model loading, inference,
+    and logits processing
+
+    Args:
+        mode_instance: ort.InferenceSession:
+            The loaded model instance
+    """
+
+    def __init__(
+        self,
+        model_instance: ort.InferenceSession,
+    ):
+        self.model_instance = model_instance
+        self.input_names: str = model_instance.get_inputs()[0].name  # type: ignore
+        self.output_name: str = model_instance.get_outputs()[0].name  # type: ignore
+
+    def _process_model_output(
+        self, logits: npt.NDArray[np.float32]
+    ) -> tuple[int, float]:
+        probs = softmax(logits, axis=-1)
+        pred = int(np.argmax(probs, axis=-1).item())
+
+        prob = float(probs.squeeze()[pred])
+        return pred, prob
+
+    def predict(self, **kwargs: Any) -> tuple[int, float]:
+        """perform inference using the loaded model"""
+        output, prob = None, None
+        assert isinstance(self.model_instance, ort.InferenceSession)
+        ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}
+        logits: np.ndarray = self.model_instance.run(  # type: ignore
+            [self.output_name], ort_inputs
+        )[0]
+        output, prob = self._process_model_output(np.array(logits, dtype=np.float32))
         return output, prob

@@ -1,4 +1,4 @@
-from .loader import SupervisedModel
+from .loader import Model
 from .trainer import SupervisedModelTrainer
 
-__all__ = ["SupervisedModel", "SupervisedModelTrainer"]
+__all__ = ["Model", "SupervisedModelTrainer"]

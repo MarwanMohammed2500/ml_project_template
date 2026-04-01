@@ -7,17 +7,20 @@ from tqdm.auto import tqdm
 import logging
 import torch
 import os
+from torch.utils.data import DataLoader
+from src.ml_project_template.early_stopping import EarlyStopping
 
 logger = logging.getLogger(__name__)
 
 
-class SupervisedModelTrainer:
+class Trainer:
     """
-    Trains a supervised model
+    Base Trainer class. This acts as the main training engine, it takes care of the training loop, logging, and early stopping.
+    And builds finer strategies from other subclasses which implements the step function for a certain task/type of model, and sets the appropriate metrics to log.
 
     ---
     Args:
-        task_type:Literal["regression", "binary", "multiclass"]:
+        task_type: Literal["regression", "binary", "multiclass"]:
             The type of task the model is trained for, used to determine how it will be trained
 
         num_epochs: int:
@@ -61,24 +64,23 @@ class SupervisedModelTrainer:
         self,
         task_type: Literal["regression", "binary", "multiclass"],
         num_epochs: int,
-        loss_fn: torch.nn.modules.loss,
-        optimizer: torch.optim,
-        train_dataloader: torch.utils.data.DataLoader,
-        test_dataloader: torch.utils.data.DataLoader,
+        loss_fn: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        train_dataloader: DataLoader[Any],
+        test_dataloader: DataLoader[Any],
         num_classes: int,
         model: Optional[torch.nn.Module] = None,
         pretrained_model_path: Optional[str] = None,
-        lr_scheduler: Optional[torch.optim.lr_scheduler] = None,
-        early_stopper: Optional[type] = None,
+        lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+        early_stopper: Optional[EarlyStopping] = None,
         verbose: bool = True,
-        binary_decision_threshold: Optional[float] = None,
+        binary_decision_threshold: float = 0.5,
         device: torch.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         ),
     ):
-
         self.binary_decision_threshold = binary_decision_threshold
-        self.pretrained_model_path = pretrained_model_path
+        self.pretrained_model_path = str(pretrained_model_path)
         self.device = torch.device(device)
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
@@ -92,14 +94,8 @@ class SupervisedModelTrainer:
         self.verbose = verbose
         self.model = model
 
-        if self.task_type != "regression":
-            self.accuracy_score, self.f1_score, _, _ = set_classification_metrics(
-                num_classes=self.num_classes, task=self.task_type, device=self.device
-            )
+        self._strategy = None
 
-            if self.task_type == "binary":
-                if self.binary_decision_threshold is None:
-                    self.binary_decision_threshold = 0.5
         if self.task_type == "regression":
             raise NotImplementedError(
                 "Still didn't implement training regression models"
@@ -112,129 +108,7 @@ class SupervisedModelTrainer:
 
         if self.pretrained_model_path:
             self._load_model()
-
-    def _training_step(self, X, y):
-        logits = self.model(X)
-        loss = self.loss_fn(
-            input=logits, target=y
-        )  # `target` here can change depending on the loss function and model (casted to long, squeezed/unsqueezed on a certain dimension, etc.) modify according to your needs
-        self.optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item(), logits
-
-    def _testing_step(self, X, y):
-        with torch.inference_mode():
-            logits = self.model(X)
-            loss = self.loss_fn(input=logits, target=y)
-        return loss.item(), logits
-
-    def _train_loop(self):
-        self.model.train()
-        train_loss = 0.0
-        for X_batch, y_batch in self.train_dataloader:
-            X_batch, y_batch = (
-                X_batch.to(self.device, non_blocking=True),
-                y_batch.to(self.device, non_blocking=True),
-            )  # non_blocking works when the dataloader is set with pin_memory = True so make sure to do that for effeciency
-
-            batch_loss, batch_logits = self._training_step(X_batch, y_batch)
-
-            if self.task_type == "binary":
-                probs = torch.sigmoid(batch_logits)
-                preds = probs > self.binary_classifier_threshold
-            elif self.task_type == "multiclass":
-                probs = torch.softmax(input=batch_logits, dim=-1)
-                preds = probs.argmax(dim=-1)
-
-            self.accuracy_score.update(preds, y_batch)
-            self.f1_score.update(preds, y_batch)
-            train_loss += batch_loss
-
-        if self.lr_scheduler:
-            self.lr_scheduler.step()
-
-        acc = self.accuracy_score.compute()
-        f1 = self.f1_score.compute()
-        self.accuracy_score.reset()
-        self.f1_score.reset()
-
-        train_loss /= len(self.train_dataloader)
-        return train_loss, acc, f1
-
-    def _test_loop(self):
-        test_loss = 0.0
-        self.model.eval()
-        for X_batch, y_batch in self.test_dataloader:
-            X_batch, y_batch = (
-                X_batch.to(self.device, non_blocking=True),
-                y_batch.to(self.device, non_blocking=True),
-            )
-
-            batch_loss, batch_logits = self._testing_step(X_batch, y_batch)
-
-            if self.task_type == "binary":
-                probs = torch.sigmoid(batch_logits)
-                preds = probs > self.binary_classifier_threshold
-            elif self.task_type == "multiclass":
-                probs = torch.softmax(input=batch_logits, dim=-1)
-                preds = probs.argmax(dim=-1)
-
-            self.accuracy_score.update(preds, y_batch)
-            self.f1_score.update(preds, y_batch)
-            test_loss += batch_loss
-
-        acc = self.accuracy_score.compute()
-        f1 = self.f1_score.compute()
-        self.accuracy_score.reset()
-        self.f1_score.reset()
-
-        test_loss /= len(self.test_dataloader)
-        return test_loss, acc, f1
-
-    def train(self):
-        """
-        Trains the provided model
-
-        ---
-        Returns:
-            train_loss: float:
-                Training Loss
-            test_loss: float:
-                Testing Loss
-        """
-        self.model.to(self.device, non_blocking=True)
-        for epoch in tqdm(range(self.num_epochs)):
-            train_loss, train_accuracy_score, train_f1_score = self._train_loop()
-            test_loss, test_accuracy_score, test_f1_score = self._test_loop()
-
-            if epoch % 10 == 0:
-                if self.verbose:
-                    logger.info(
-                        f""" Epoch {epoch}
-                        Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
-                        Training Accuracy = {train_accuracy_score:.2%}\t| Testing Accuracy = {test_accuracy_score:.2%}
-                        Training F1-Score = {train_f1_score:.2%}\t| Testing F1-Score = {test_f1_score:.2%}
-                        __________________________________________________________________________________
-                        """
-                    )
-            if self.early_stopper:
-                self.early_stopper(test_loss, self.model)
-                if self.early_stopper.early_stop:
-                    logger.info(
-                        "================================ Early Stopping ================================"
-                    )
-                    self.early_stopper.load_best_model(self.model)
-                    break
-
-        logger.info(
-            f""" Final Results:
-            Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
-            Training Accuracy = {train_accuracy_score:.2%}\t| Testing Accuracy = {test_accuracy_score:.2%}
-            Training F1-Score = {train_f1_score:.2%}\t| Testing F1-Score = {test_f1_score:.2%}
-            """
-        )
-        return train_loss, test_loss
+        self._load_adaptor()
 
     def _verify_model_path(self) -> bool:
         if not os.path.exists(self.pretrained_model_path):
@@ -250,6 +124,7 @@ class SupervisedModelTrainer:
             )
 
     def save_as_torch(self, save_path: str, model_name: str, dummy_input: Any):
+        assert self.model is not None, "No model to save"
         if not model_name.endswith(".pt"):
             model_name += ".pt"
         if len(save_path) == 0:
@@ -262,7 +137,7 @@ class SupervisedModelTrainer:
             raise ValueError("save_path must be a valid directory path")
 
         try:
-            model = torch.jit.script(self.model)
+            model: torch.jit.ScriptModule = torch.jit.script(self.model)  # type: ignore
         except Exception as e:
             logger.warning(
                 f"Scripting Failed, falling back to tracing. Error details: {e}",
@@ -270,20 +145,29 @@ class SupervisedModelTrainer:
             )
             self.model.to(self.device)
             try:
-                model = torch.jit.trace(self.model, dummy_input)
+                model = torch.jit.trace(self.model, dummy_input)  # type: ignore
             except Exception as e:
                 logger.warning(
                     f"Failed to trace the model. Error details: {e}",
                     extra={"error_details": e, "format": "pt"},
                 )
                 return
-        model.save(save_path)
+        model.save(save_path)  # type: ignore
         logger.info(
             f"Model exported to TorchScript successfully and saved to {save_path}",
             extra={"save_path": save_path, "format": "pt"},
         )
 
-    def save_as_onnx(self, save_path: str, model_name: str, dummy_input: Any):
+    def save_as_onnx(
+        self,
+        save_path: str,
+        model_name: str,
+        dummy_input: Any,
+        dynamic_shapes: dict[str, dict[int, str]],
+        input_names: list[str] = ["input"],
+        output_names: list[str] = ["output"],
+    ):
+        assert self.model is not None, "No model to save"
         if len(save_path) == 0:
             raise ValueError("save_path should not be empty")
 
@@ -293,22 +177,19 @@ class SupervisedModelTrainer:
         else:
             raise ValueError("save_path must be a valid directory path")
 
-        model = self.model.to("cpu")
+        model = self.model.cpu()
         dummy_input = dummy_input.to("cpu")
         if not model_name.endswith(".onnx"):
             model_name += ".onnx"
         try:
-            torch.onnx.export(
+            torch.onnx.export(  # type: ignore
                 model,
                 dummy_input,
                 save_path,
                 dynamo=True,
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_shapes={
-                    "input": {0: "batch_size"},
-                    "output": {0: "batch_size"},
-                },
+                input_names=input_names,
+                output_names=output_names,
+                dynamic_shapes=dynamic_shapes,
             )
             logger.info(
                 f"Model exported to ONNX successfully and saved to {save_path}",
@@ -319,3 +200,294 @@ class SupervisedModelTrainer:
                 f"Failed to export model to ONNX. Error details: {e}",
                 extra={"error_details": e, "format": "onnx"},
             )
+
+    def _load_adaptor(self):
+        assert self.model is not None, "Model is not loaded, cannot load strategy"
+        if self.task_type == "binary":
+            self._strategy = _BinaryClassifierTrainer(
+                loss_fn=self.loss_fn,
+                optimizer=self.optimizer,
+                model_instance=self.model,
+                binary_decision_threshold=self.binary_decision_threshold,
+                device=self.device,
+            )
+        elif self.task_type == "multiclass":
+            self._strategy = _MulticlassClassifierTrainer(
+                loss_fn=self.loss_fn,
+                optimizer=self.optimizer,
+                model_instance=self.model,
+                num_classes=self.num_classes,
+                device=self.device,
+            )
+        elif self.task_type == "regression":
+            raise NotImplementedError("Regression task is not implemented yet")
+        else:
+            raise ValueError(
+                "Invalid task type, supported values are: 'binary', 'multiclass', 'regression'"
+            )
+
+    def _train_loop(self) -> tuple[float, dict[str, float]]:
+        assert self.model is not None, (
+            "Model is not loaded, cannot perform training loop"
+        )
+        assert self._strategy is not None, (
+            "Strategy is not loaded, cannot perform training loop"
+        )
+        self.model.train()
+        train_loss = 0.0
+        for X_batch, y_batch in self.train_dataloader:
+            X_batch, y_batch = (
+                X_batch.to(self.device, non_blocking=True),
+                y_batch.to(self.device, non_blocking=True),
+            )  # non_blocking works when the dataloader is set with pin_memory = True so make sure to do that for effeciency
+
+            batch_loss, batch_preds = self._strategy.step(X_batch, y_batch, train=True)
+
+            self._strategy.metrics.update(batch_preds, y_batch)
+            train_loss += batch_loss
+
+        if self.lr_scheduler:
+            self.lr_scheduler.step()
+
+        metrics = self._strategy.metrics.compute()
+        self._strategy.metrics.reset()
+
+        train_loss /= len(self.train_dataloader)
+        return train_loss, metrics
+
+    def _test_loop(self) -> tuple[float, dict[str, float]]:
+        assert self.model is not None, (
+            "Model is not loaded, cannot perform testing loop"
+        )
+        assert self._strategy is not None, (
+            "Strategy is not loaded, cannot perform testing loop"
+        )
+        test_loss = 0.0
+        assert self.model is not None, (
+            "Model is not loaded, cannot perform testing loop"
+        )
+        self.model.eval()
+        for X_batch, y_batch in self.test_dataloader:
+            X_batch, y_batch = (
+                X_batch.to(self.device, non_blocking=True),
+                y_batch.to(self.device, non_blocking=True),
+            )
+
+            batch_loss, batch_preds = self._strategy.step(X_batch, y_batch, train=False)
+
+            self._strategy.metrics.update(batch_preds, y_batch)
+            test_loss += batch_loss
+
+        metrics = self._strategy.metrics.compute()
+        self._strategy.metrics.reset()
+
+        test_loss /= len(self.test_dataloader)
+        return test_loss, metrics
+
+    def train(self):
+        """
+        Trains the provided model
+
+        ---
+        Returns:
+            train_loss: float:
+                Training Loss
+            test_loss: float:
+                Testing Loss
+        """
+        assert self.model is not None, "Model is not loaded, cannot perform training"
+        self.model.to(self.device, non_blocking=True)
+        train_loss, test_loss = 0.0, 0.0
+        train_metrics, test_metrics = {}, {}
+        for epoch in tqdm(range(self.num_epochs)):
+            train_loss, train_metrics = self._train_loop()
+            test_loss, test_metrics = self._test_loop()
+
+            if epoch % 10 == 0:
+                if self.verbose:
+                    train_metrics_str = " | ".join(f"{k.title()}: {v:.2%}" for k, v in train_metrics.items())
+                    test_metrics_str = " | ".join(f"{k.title()}: {v:.2%}" for k, v in test_metrics.items())
+                    logger.info(
+                        f""" Epoch {epoch}
+                        Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
+                        Training Metrics:
+                            {train_metrics_str}
+                        Testing Metrics:
+                            {test_metrics_str}
+                        __________________________________________________________________________________
+                        """
+                    )
+            if self.early_stopper:
+                self.early_stopper(test_loss, self.model)
+                if self.early_stopper.early_stop:
+                    logger.info(
+                        "================================ Early Stopping ================================"
+                    )
+                    self.early_stopper.load_best_model(self.model)
+                    break
+
+        logger.info(
+            f""" Final Results:
+            Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
+            Training Metrics = {train_metrics}\t| Testing Metrics = {test_metrics}
+            """
+        )
+        return train_loss, test_loss
+
+class _TrainingStrategy:
+    """
+    This class acts as an abstraction layer for a training strategy, it defines the step function that performs a training step and returns the loss and the predictions to log the metrics with.
+    
+    Args:
+        loss_fn: torch.nn.Module:
+            The loss function to use
+
+        optimizer: torch.optim.Optimizer:
+            The optimizer to use
+
+        model_instance: torch.nn.Module:
+            The model to train
+
+        device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"):
+            The device to use when training
+    """
+
+    def __init__(
+        self,
+        loss_fn: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        model_instance: torch.nn.Module,
+        ):
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.model = model_instance
+
+    def step(self, X: torch.Tensor, y: torch.Tensor, train: bool) -> tuple[float, torch.Tensor]:
+        """Performs a training step, returns (loss, processed_predictions)"""
+        raise NotImplementedError("This method should be implemented by a subclass")
+    
+    def _calculate_step(self, X: torch.Tensor, y: torch.Tensor, train: bool):
+        context = torch.enable_grad() if train else torch.inference_mode()
+        with context:
+            logits = self.model(X)
+            loss = self.loss_fn(input=logits, target=y)
+            if train:
+                self.optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                self.optimizer.step()
+        return loss, logits
+
+class _BinaryClassifierTrainer(_TrainingStrategy):
+    """
+    Trains a binary classifier
+
+    ---
+    Args:
+        loss_fn: torch.nn.modules.loss:
+            The loss function to use
+
+        optimizer: torch.optim:
+            The optimizer to use
+
+        model_instance: torch.nn.Module:
+            The model to train
+
+        binary_classifier_threshold: Optional[float] = None:
+            Used in binar classification to log the metrics (F1 and Accuracy), if not set, will default to 0.5
+
+        device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"):
+            The device to use when training
+    """
+
+    def __init__(
+        self,
+        loss_fn: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        model_instance: torch.nn.Module,
+        binary_decision_threshold: float = 0.5,
+        device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ):
+        super().__init__(
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            model_instance=model_instance,
+        )
+        self.device = torch.device(device)
+        self.binary_decision_threshold = binary_decision_threshold
+        self.metrics = set_classification_metrics(
+            num_classes=2, task="binary", device=self.device
+        )
+
+    def step(
+        self, X: torch.Tensor, y: torch.Tensor, train: bool
+    ) -> tuple[float, torch.Tensor]:
+        """Training or Training step for a binary classifier, returns (loss, processed_predictions)"""
+        assert self.model is not None, (
+            "Model is not loaded, cannot perform training step"
+        )
+        
+        loss, logits = self._calculate_step(X, y, train)
+
+        probs = torch.sigmoid(logits)
+        preds = probs > self.binary_decision_threshold
+        return loss.item(), preds
+
+class _MulticlassClassifierTrainer(_TrainingStrategy):
+    """
+    Trains a multiclass classifier
+
+    ---
+    Args:
+        loss_fn: torch.nn.modules.loss:
+            The loss function to use
+
+        optimizer: torch.optim:
+            The optimizer to use
+
+        model_instance: torch.nn.Module:
+            The model to train
+
+        num_classes: int:
+            The number of classes in the classification task
+
+        device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"):
+            The device to use when training
+    """
+
+    def __init__(
+        self,
+        loss_fn: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        model_instance: torch.nn.Module,
+        num_classes: int,
+        device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ):
+        super().__init__(
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            model_instance=model_instance,
+        )
+        self.device = torch.device(device)
+        self.num_classes = num_classes
+        self.metrics = set_classification_metrics(
+            num_classes=self.num_classes, task="multiclass", device=self.device
+        )
+
+    def step(
+        self, X: torch.Tensor, y: torch.Tensor, train: bool
+    ) -> tuple[float, torch.Tensor]:
+        """Training or Training step for a binary classifier, returns (loss, processed_predictions)"""
+        assert self.model is not None, (
+            "Model is not loaded, cannot perform training step"
+        )
+        
+        loss, logits = self._calculate_step(X, y, train)
+
+        probs = torch.softmax(input=logits, dim=-1)
+        preds = probs.argmax(dim=-1)
+        return loss.item(), preds
+            
