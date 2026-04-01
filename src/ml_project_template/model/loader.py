@@ -1,11 +1,11 @@
 import os
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as ort  # type: ignore
 from scipy.special import softmax  # type: ignore
 from src.ml_project_template.errors import InvalidModelPathError
-
+from src.ml_project_template.services import Pipeline
 
 class Model:
     """Base Class for all model classes"""
@@ -14,6 +14,7 @@ class Model:
         self,
         model_path: str,
         task_type: Literal["binary", "multiclass", "regression"] | None = None,
+        preproc_pipeline: Optional[Pipeline] = None,
         *args: Any,
         **kwargs: Any,
     ):
@@ -23,6 +24,8 @@ class Model:
         self.args = args
         self.kwargs = kwargs
         self._strategy = None
+        
+        self.preproc_pipeline = preproc_pipeline
 
     @property
     def loaded(self):
@@ -86,6 +89,10 @@ class Model:
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         self.preload()
         assert self._strategy is not None
+        if self.preproc_pipeline is not None:
+            preproc_inputs = {name: kwargs[name] for name in self._strategy.input_names if name in kwargs}
+            preprocessed_data = self.preproc_pipeline(preproc_inputs)
+            kwargs.update(preprocessed_data)
         return self._strategy.predict(**kwargs)
 
 
