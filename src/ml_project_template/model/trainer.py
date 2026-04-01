@@ -9,7 +9,6 @@ import torch
 import os
 from torch.utils.data import DataLoader
 from src.ml_project_template.early_stopping import EarlyStopping
-
 logger = logging.getLogger(__name__)
 
 
@@ -262,10 +261,10 @@ class Trainer:
         assert self._strategy is not None, (
             "Strategy is not loaded, cannot perform testing loop"
         )
-        test_loss = 0.0
         assert self.model is not None, (
             "Model is not loaded, cannot perform testing loop"
         )
+        test_loss = 0.0
         self.model.eval()
         for X_batch, y_batch in self.test_dataloader:
             X_batch, y_batch = (
