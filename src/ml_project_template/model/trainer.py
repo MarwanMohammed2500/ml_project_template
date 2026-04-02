@@ -9,6 +9,7 @@ import torch
 import os
 from torch.utils.data import DataLoader
 from src.ml_project_template.early_stopping import EarlyStopping
+import mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +70,9 @@ class Trainer:
         train_dataloader: DataLoader[Any],
         test_dataloader: DataLoader[Any],
         num_classes: int,
-        model: Optional[torch.nn.Module] = None,
-        pretrained_model_path: Optional[str] = None,
+        model_instance: Optional[torch.nn.Module] = None,
+        model_path: Optional[str] = None,
+        model_uri: Optional[str] = None,
         lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
         early_stopper: Optional[EarlyStopping] = None,
         verbose: bool = True,
@@ -80,11 +82,11 @@ class Trainer:
         ),
     ):
         self.binary_decision_threshold = binary_decision_threshold
-        self.pretrained_model_path = str(pretrained_model_path)
-        self.device = torch.device(device)
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
         self.early_stopper = early_stopper
+        self.device = torch.device(device)
+        self.model_path = str(model_path)
         self.lr_scheduler = lr_scheduler
         self.num_classes = num_classes
         self.num_epochs = num_epochs
@@ -92,32 +94,35 @@ class Trainer:
         self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.verbose = verbose
-        self.model = model
 
         self._strategy = None
+
+        self.model: torch.nn.Module
+        if model_uri is not None:
+            self.model = mlflow.pytorch.load_model(model_uri)  # type: ignore
+        elif model_path is not None:
+            self._load_model()
+        elif model_instance is not None:
+            self.model = model_instance
+        else:
+            raise ValueError(
+                "Either `model_instance`, `model_path`, or `model_uri` should be passed, got None for all"
+            )
+        self._load_adaptor()
 
         if self.task_type == "regression":
             raise NotImplementedError(
                 "Still didn't implement training regression models"
             )
 
-        if not self.model and not self.pretrained_model_path:
-            raise ValueError(
-                "Either `model` should be passed or `pretrained_model_path` should be passed, go None for both"
-            )
-
-        if self.pretrained_model_path:
-            self._load_model()
-        self._load_adaptor()
-
     def _verify_model_path(self) -> bool:
-        if not os.path.exists(self.pretrained_model_path):
+        if not os.path.exists(self.model_path):
             return False
         return True
 
     def _load_model(self):
         if self._verify_model_path():
-            self.model = torch.load(self.pretrained_model_path, weights_only=True)
+            self.model = torch.load(self.model_path, weights_only=True)
         else:
             raise InvalidModelPathError(
                 "The model path is invalid, please verify that the path exists."
@@ -249,11 +254,11 @@ class Trainer:
         if self.lr_scheduler:
             self.lr_scheduler.step()
 
-        metrics = self._strategy.metrics.compute()
+        train_metrics = self._strategy.metrics.compute()
         self._strategy.metrics.reset()
 
         train_loss /= len(self.train_dataloader)
-        return train_loss, metrics
+        return train_loss, train_metrics
 
     def _test_loop(self) -> tuple[float, dict[str, float]]:
         assert self.model is not None, (
@@ -278,13 +283,13 @@ class Trainer:
             self._strategy.metrics.update(batch_preds, y_batch)
             test_loss += batch_loss
 
-        metrics = self._strategy.metrics.compute()
+        test_metrics = self._strategy.metrics.compute()
         self._strategy.metrics.reset()
 
         test_loss /= len(self.test_dataloader)
-        return test_loss, metrics
+        return test_loss, test_metrics
 
-    def train(self):
+    def train(self, log_every: int = 10) -> tuple[float, float]:
         """
         Trains the provided model
 
@@ -303,13 +308,15 @@ class Trainer:
             train_loss, train_metrics = self._train_loop()
             test_loss, test_metrics = self._test_loop()
 
-            if epoch % 10 == 0:
-                if self.verbose:
+            if self.verbose:
+                if epoch % log_every == 0:
                     train_metrics_str = " | ".join(
-                        f"{k.title()}: {v:.2%}" for k, v in train_metrics.items()
+                        f"{' '.join(k.title().split('_'))}: {v:.2%}"
+                        for k, v in train_metrics.items()
                     )
                     test_metrics_str = " | ".join(
-                        f"{k.title()}: {v:.2%}" for k, v in test_metrics.items()
+                        f"{' '.join(k.title().split('_'))}: {v:.2%}"
+                        for k, v in test_metrics.items()
                     )
                     logger.info(
                         f""" Epoch {epoch}
@@ -330,10 +337,16 @@ class Trainer:
                     self.early_stopper.load_best_model(self.model)
                     break
 
+        train_metrics_str = " | ".join(
+            f"{' '.join(k.title().split('_'))}: {v:.2%}"
+            for k, v in train_metrics.items()
+        )
+        test_metrics_str = " | ".join(
+            f"{' '.join(k.title().split('_'))}: {v:.2%}"
+            for k, v in test_metrics.items()
+        )
         logger.info(
-            f""" Final Results:
-            Training Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}
-            Training Metrics = {train_metrics}\t| Testing Metrics = {test_metrics}
+            f""" Final Results:\nTraining Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}\nTraining Metrics:\n    {train_metrics_str}\t| Testing Metrics\n    {test_metrics_str}
             """
         )
         return train_loss, test_loss

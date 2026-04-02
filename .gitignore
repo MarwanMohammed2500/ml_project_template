@@ -1,3 +1,11 @@
 .ruff_cache/
+.pytest_cache/
 .venv/
 *__pycache__/
+data/*
+mlruns/
+mlflow.db
+**.csv
+src/ml_project_template/notebooks/model_summary.json
+artifacts/*
+.env

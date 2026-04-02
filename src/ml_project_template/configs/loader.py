@@ -1,4 +1,4 @@
-from src.ml_project_template.schemas import AppConfigs
+from ml_project_template.schemas import AppConfigs  # type: ignore
 from pydantic_yaml import parse_yaml_file_as
 
 

@@ -1,5 +1,5 @@
 # Example Configurations
-from ml_project_template.services.preprocessing import Normalizer, PreprocessorPipeline
+from ml_project_template.services.preprocessing import Normalizer, PreprocessorPipeline  # type: ignore
 
 MODEL_PATH = "path/to/model/file"
 MODEL_TYPE = "onnx"  # or pt

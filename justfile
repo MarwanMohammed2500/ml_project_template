@@ -17,3 +17,18 @@ clean:
 lint:
     uv run ruff check --fix
     uv run ruff format
+
+# Start the MLflow server with a SQLite backend store
+start_mlflow:
+    mlflow server --backend-store-uri sqlite:///mlflow.db \
+    --default-artifact-root ./mlruns \
+    --port 5001 \
+    --host 0.0.0.0
+
+# Run the script that exports a logged PyTorch model to ONNX and log that model to the registery
+release_new_onnx_version:
+    python src/ml_project_template/scripts/export_model_to_onnx_and_save_to_mlflow.py \
+    export-model-to-onnx-and-save-to-mlflow \
+    --model_uri "models:/SimpleModel/2" \
+    --input_dim 2 \
+    --path_to_dataset /Users/marwanmohammed/Codes/ml_project_template/data/rawdata.csv
