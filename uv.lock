@@ -779,7 +779,7 @@ train = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.135.1" },
-    { name = "great-expectations", specifier = ">=1.15.2" },
+    { name = "great-expectations" },
     { name = "numpy", specifier = ">=2.4.2" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "pydantic", specifier = ">=2.12.5" },

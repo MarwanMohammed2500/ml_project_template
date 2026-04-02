@@ -21,7 +21,7 @@ class Normalizer:
         return {key: (value - self.mean) / self.std for key, value in data.items()}
 
 
-class Pipeline:  # This should be called with a list of preprocessors, and it will apply them sequentially to the input data
+class PreprocessorPipeline:  # This should be called with a list of preprocessors, and it will apply them sequentially to the input data
     def __init__(self, steps: list[Preprocessor]):
         self.steps = steps
 

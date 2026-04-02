@@ -1,11 +1,11 @@
 # Example Configurations
-from ml_project_template.services.preprocessing import Normalizer, Pipeline
+from ml_project_template.services.preprocessing import Normalizer, PreprocessorPipeline
 
 MODEL_PATH = "path/to/model/file"
 MODEL_TYPE = "onnx"  # or pt
 TASK_TYPE = "binary"  # or /multiclass/regression
 CLASS_MAP = {0: "your", 1: "class", 2: "map"}
 DECISION_THRESHOLD = 0.5
-PREPROC_PIPELINE = Pipeline(
+PREPROC_PIPELINE = PreprocessorPipeline(
     steps=[Normalizer(mean=0.5, std=0.5)]
 )  # Example pipeline, replace with your actual preprocessors

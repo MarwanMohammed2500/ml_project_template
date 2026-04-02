@@ -5,7 +5,7 @@ import numpy.typing as npt
 import onnxruntime as ort  # type: ignore
 from scipy.special import softmax  # type: ignore
 from src.ml_project_template.errors import InvalidModelPathError
-from src.ml_project_template.services import Pipeline
+from src.ml_project_template.services import PreprocessorPipeline
 
 
 class Model:
@@ -15,7 +15,7 @@ class Model:
         self,
         model_path: str,
         task_type: Literal["binary", "multiclass", "regression"] | None = None,
-        preproc_pipeline: Optional[Pipeline] = None,
+        preproc_pipeline: Optional[PreprocessorPipeline] = None,
         *args: Any,
         **kwargs: Any,
     ):
