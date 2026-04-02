@@ -14,7 +14,7 @@ def validate_env_vars() -> dict[str, Any]:
     errors: list[str] = []
     validated_vars: dict[str, Any] = {}
     ENV_SCHEMA = {
-        "APP_ENV": re.compile("^(development|staging|production)$"),
+        "APP_ENV": re.compile("^(dev|test|prod)$"),
     }
     for var, pattern in ENV_SCHEMA.items():
         value = os.getenv(var)

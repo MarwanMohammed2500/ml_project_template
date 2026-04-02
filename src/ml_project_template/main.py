@@ -1,5 +1,5 @@
 import uvicorn
-from src.configs import validate_env_vars
+from src.ml_project_template.configs import validate_env_vars
 
 ENVS = validate_env_vars()
 

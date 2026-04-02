@@ -39,8 +39,8 @@ def set_regression_metrics(
     mse = MeanSquaredError(squared=mse_squared, num_outputs=num_outputs, device=device)
     return MetricCollection(
         {
-            "Normalized Root Mean Squared Error": nrmse,
-            "Mean Squared Error" if mse_squared else "Root Mean Squared Error": mse,
+            "normalized_root_mean_squared_error": nrmse,
+            "mean_squared_error" if mse_squared else "root_mean_squared_error": mse,
         }
     ).to(device)
 
@@ -89,10 +89,10 @@ def regression_report(
     )
 
     return {
-        "Normalized Root Mean Squared Error": metrics[
-            "Normalized Root Mean Squared Error"
+        "normalized_root_mean_squared_error": metrics[
+            "normalized_root_mean_squared_error"
         ](y_pred, y_true).item(),
-        "Mean Squared Error" if mse_squared else "Root Mean Squared Error": metrics[
-            "Mean Squared Error" if mse_squared else "Root Mean Squared Error"
+        "mean_squared_error" if mse_squared else "root_mean_squared_error": metrics[
+            "mean_squared_error" if mse_squared else "root_mean_squared_error"
         ](y_pred, y_true).item(),
     }

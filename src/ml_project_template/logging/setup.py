@@ -84,7 +84,6 @@ def setup_logging(
 
     root = logging.getLogger()
     root.setLevel(level)
-    root.handlers.clear()
     root.addHandler(stream_handler)
 
     if output_file:

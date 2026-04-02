@@ -39,10 +39,10 @@ def set_classification_metrics(
         )
     return MetricCollection(
         {
-            "Accuracy": accuracy_score,
-            "F1-Score": f1_score,
-            "Precision": precision,
-            "Recall": recall,
+            "accuracy": accuracy_score,
+            "f1_score": f1_score,
+            "precision": precision,
+            "recall": recall,
         }
     ).to(device)
 
