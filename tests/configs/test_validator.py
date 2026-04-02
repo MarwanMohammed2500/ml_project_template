@@ -1,4 +1,5 @@
 from src.ml_project_template.configs import validate_env_vars
+import os
 
 
 def test_validate_env_vars():

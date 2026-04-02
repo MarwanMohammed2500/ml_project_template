@@ -1,0 +1,11 @@
+trainer_configs:
+  task_type: "binary" # multiclass/binary/regression
+  num_epochs: 5
+  model_path: "path/to/your/model.pt" # Optional
+  model_uri: "models:/SimpleModel/1" # Optional
+  verbose: True
+  binary_decision_threshold: 0.5
+
+data_configs:
+  dataset_path: "path/to/dataset.csv"
+

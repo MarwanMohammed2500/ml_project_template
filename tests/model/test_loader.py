@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 from ml_project_template.model import Model  # type: ignore
+import pytest
 
 
 @patch("src.ml_project_template.model.ort.InferenceSession")
@@ -39,9 +40,6 @@ def test_multiclass_model_preload_initializes_strategy(mock_session):  # type: i
     from src.ml_project_template.model.loader import _MulticlassClassifierModel  # type: ignore
 
     assert isinstance(model._strategy, _MulticlassClassifierModel)  # type: ignore
-
-
-import pytest
 
 
 @patch("src.ml_project_template.model.ort.InferenceSession")

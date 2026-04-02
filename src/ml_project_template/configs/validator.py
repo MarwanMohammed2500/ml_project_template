@@ -17,7 +17,7 @@ def validate_env_vars() -> dict[str, Any]:
         "APP_ENV": re.compile("^(dev|test|prod)$"),
         "MLFLOW_TRACKING_URI": re.compile(r"^sqlite:\/\/\/[^\s]+\.db$"),
         "MLFLOW_EXPERIMENT_NAME": re.compile("^[A-Za-z-]+$"),
-        "MLFLOW_DB_NAME": re.compile(r"^.+\.db$")
+        "MLFLOW_DB_NAME": re.compile(r"^.+\.db$"),
     }
     for var, pattern in ENV_SCHEMA.items():
         value = os.getenv(var)

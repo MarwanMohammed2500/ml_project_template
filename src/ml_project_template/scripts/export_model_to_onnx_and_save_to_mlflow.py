@@ -1,7 +1,6 @@
 import click
 import mlflow
 from typing import Optional
-from ml_project_template.utils import export_onnx_from_torch  # type: ignore
 import torch
 import onnx
 from mlflow.models.signature import infer_signature  # type: ignore
@@ -10,6 +9,7 @@ import os
 import io
 
 from ml_project_template.configs.validator import ENVS  # type: ignore
+
 
 @click.group()
 def cli():
@@ -39,13 +39,14 @@ def export_model_to_onnx_and_save_to_mlflow(
     input_dim: int,
     path_to_dataset: str,
 ) -> None:
-    assert mlflow.get_tracking_uri() == f"sqlite:///{ENVS["MLFLOW_DB_NAME"]}", (
+    assert mlflow.get_tracking_uri() == f"sqlite:///{ENVS['MLFLOW_DB_NAME']}", (
         "MLflow tracking URI is not set correctly!"
     )
-    assert mlflow.get_experiment_by_name(os.getenv("MLFLOW_EXPERIMENT_NAME", "")) is not None, (
-        "MLflow experiment is not set correctly!"
-    )
-    
+    assert (
+        mlflow.get_experiment_by_name(os.getenv("MLFLOW_EXPERIMENT_NAME", ""))
+        is not None
+    ), "MLflow experiment is not set correctly!"
+
     input_sample = torch.randn(1, input_dim)
 
     model_to_export: torch.nn.Module
@@ -61,10 +62,10 @@ def export_model_to_onnx_and_save_to_mlflow(
     model_to_export.eval()  # type: ignore
 
     with io.BytesIO() as buffer:
-        torch.onnx.export( # type: ignore
+        torch.onnx.export(  # type: ignore
             model_to_export,
-            input_sample, # type: ignore
-            buffer, # type: ignore
+            input_sample,  # type: ignore
+            buffer,  # type: ignore
             dynamo=True,
             input_names=["x"],
             output_names=["output"],
@@ -72,17 +73,17 @@ def export_model_to_onnx_and_save_to_mlflow(
         )
         buffer.seek(0)
         model = onnx.load_model_from_string(buffer.read())
-    
+
     dataframe = pd.read_csv(path_to_dataset)
     features: pd.DataFrame
     label: pd.Series
     features, label = dataframe.drop("label", axis=1), dataframe["label"]
     signature = infer_signature(features, label)
-    
+
     mlflow.onnx.log_model(  # type: ignore
         model,
         name="onnx_model",
-        registered_model_name=f"SimpleModel_ONNX",
+        registered_model_name="SimpleModel_ONNX",
         signature=signature,
     )
 
