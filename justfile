@@ -26,9 +26,9 @@ start_mlflow:
     --host 0.0.0.0
 
 # Run the script that exports a logged PyTorch model to ONNX and log that model to the registery
-release_new_onnx_version:
+release_new_onnx_version version:
     python src/ml_project_template/scripts/export_model_to_onnx_and_save_to_mlflow.py \
     export-model-to-onnx-and-save-to-mlflow \
-    --model_uri "models:/SimpleModel/2" \
+    --model_uri "models:/SimpleModel/{{version}}" \
     --input_dim 2 \
-    --path_to_dataset /Users/marwanmohammed/Codes/ml_project_template/data/rawdata.csv
+    --path_to_dataset /Users/marwanmohammed/Codes/ml_project_template/data/raw/binary_rawdata.csv

@@ -7,6 +7,7 @@ import onnx
 from mlflow.models.signature import infer_signature  # type: ignore
 import pandas as pd
 import os
+import io
 
 from ml_project_template.configs.validator import ENVS  # type: ignore
 
@@ -44,24 +45,40 @@ def export_model_to_onnx_and_save_to_mlflow(
     assert mlflow.get_experiment_by_name(os.getenv("MLFLOW_EXPERIMENT_NAME", "")) is not None, (
         "MLflow experiment is not set correctly!"
     )
+    
     input_sample = torch.randn(1, input_dim)
-    output_path = "model.onnx"
 
-    export_onnx_from_torch(
-        input_sample=input_sample,
-        output_path=output_path,
-        input_names=["x"],
-        output_names=["output"],
-        dynamic_shapes={"x": {0: "batch"}},
-        model_uri=model_uri,
-        model_path=model_path,
-    )
-    model = onnx.load(output_path)  # type: ignore
+    model_to_export: torch.nn.Module
+    if model_path is not None:
+        model_to_export = torch.load(model_path)
+    elif model_uri is not None:
+        model_to_export = mlflow.pytorch.load_model(model_uri)  # type: ignore
+    else:
+        raise ValueError("Either `model_path`, or `model_uri` should be provided.")
+
+    model_to_export = model_to_export.cpu()  # type: ignore
+    input_sample = input_sample.cpu()
+    model_to_export.eval()  # type: ignore
+
+    with io.BytesIO() as buffer:
+        torch.onnx.export( # type: ignore
+            model_to_export,
+            input_sample, # type: ignore
+            buffer, # type: ignore
+            dynamo=True,
+            input_names=["x"],
+            output_names=["output"],
+            dynamic_shapes={"x": {0: "batch"}},
+        )
+        buffer.seek(0)
+        model = onnx.load_model_from_string(buffer.read())
+    
     dataframe = pd.read_csv(path_to_dataset)
     features: pd.DataFrame
     label: pd.Series
     features, label = dataframe.drop("label", axis=1), dataframe["label"]
     signature = infer_signature(features, label)
+    
     mlflow.onnx.log_model(  # type: ignore
         model,
         name="onnx_model",
