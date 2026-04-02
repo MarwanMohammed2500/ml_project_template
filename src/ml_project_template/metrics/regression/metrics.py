@@ -34,9 +34,8 @@ def set_regression_metrics(
     nrmse = NormalizedRootMeanSquaredError(
         normalization=nrmse_normalization_technique,
         num_outputs=num_outputs,
-        device=device,
     )
-    mse = MeanSquaredError(squared=mse_squared, num_outputs=num_outputs, device=device)
+    mse = MeanSquaredError(squared=mse_squared, num_outputs=num_outputs)
     return MetricCollection(
         {
             "normalized_root_mean_squared_error": nrmse,

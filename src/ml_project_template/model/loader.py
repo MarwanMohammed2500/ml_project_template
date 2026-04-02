@@ -4,8 +4,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as ort  # type: ignore
 from scipy.special import softmax  # type: ignore
-from src.ml_project_template.errors import InvalidModelPathError
-from src.ml_project_template.services import PreprocessorPipeline
+from ml_project_template.errors import InvalidModelPathError  # type: ignore
+from ml_project_template.utils import PreprocessorPipeline  # type: ignore
 
 
 class Model:
@@ -27,6 +27,11 @@ class Model:
         self._strategy = None
 
         self.preproc_pipeline = preproc_pipeline
+
+        if task_type not in ["binary", "multiclass", "regression"]:
+            raise ValueError(
+                "Invalid task type, supported values are: 'binary', 'multiclass', 'regression'"
+            )
 
     @property
     def loaded(self):
@@ -122,7 +127,7 @@ class _BinaryClassifierModel:
         self.output_name: str = model_instance.get_outputs()[0].name  # type: ignore
 
     def sigmoid(self, x: npt.NDArray[np.float32]) -> float:
-        return float(1 / (1 + np.exp(-x)))
+        return float((1 / (1 + np.exp(-x))).item())
 
     def _compare_logits_and_threshold(
         self, logits: npt.NDArray[np.float32]
@@ -140,11 +145,12 @@ class _BinaryClassifierModel:
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         """perform inference using the loaded model"""
         output, prob = None, None
-        assert isinstance(self.model_instance, ort.InferenceSession)
+        assert hasattr(self.model_instance, "run")
         ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}
         logits: np.ndarray = self.model_instance.run(  # type: ignore
             [self.output_name], ort_inputs
         )[0]
+        print(f"logits = {logits}")
         output, prob = self._process_model_output(np.array(logits, dtype=np.float32))
         return output, prob
 
@@ -179,7 +185,7 @@ class _MulticlassClassifierModel:
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         """perform inference using the loaded model"""
         output, prob = None, None
-        assert isinstance(self.model_instance, ort.InferenceSession)
+        assert hasattr(self.model_instance, "run")
         ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}
         logits: np.ndarray = self.model_instance.run(  # type: ignore
             [self.output_name], ort_inputs

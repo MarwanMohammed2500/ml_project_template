@@ -2,7 +2,7 @@ import torch
 import pytest
 from unittest.mock import patch, MagicMock
 from torch.utils.data import DataLoader, TensorDataset
-from src.ml_project_template.model.trainer import Trainer
+from ml_project_template.model.trainer import Trainer, _BinaryClassifierTrainer  # type: ignore
 from typing import Any
 
 
@@ -32,24 +32,27 @@ def trainer_params() -> dict[str, Any]:
         "train_dataloader": dl,
         "test_dataloader": dl,
         "num_classes": 2,
-        "model": model,
+        "model_instance": model,
         "device": "cpu",
     }
 
 
 def test_trainer_raises_error_if_no_model_provided(trainer_params: dict[str, Any]):
-    trainer_params["model"] = None
-    trainer_params["pretrained_model_path"] = None
+    trainer_params["model_instance"] = None
+    trainer_params["model_path"] = None
+    trainer_params["model_uri"] = None
 
-    with pytest.raises(ValueError, match="Either `model` should be passed"):
+    with pytest.raises(
+        ValueError,
+        match="Either `model_instance`, `model_path`, or `model_uri` should be passed, got None for all",
+    ):
         Trainer(**trainer_params)
 
 
 def test_trainer_loads_correct_strategy(trainer_params: dict[str, Any]):
     trainer: Trainer = Trainer(**trainer_params)
-    from src.ml_project_template.model.trainer import _BinaryClassifierTrainer
 
-    assert isinstance(trainer._strategy, _BinaryClassifierTrainer)
+    assert isinstance(trainer._strategy, _BinaryClassifierTrainer)  # type: ignore
 
 
 def test_train_loop_updates_weights(trainer_params: dict[str, Any]):
@@ -57,22 +60,22 @@ def test_train_loop_updates_weights(trainer_params: dict[str, Any]):
 
     # Capture weights before training
     assert trainer.model is not None
-    initial_weights = trainer.model.fc.weight.clone()
+    initial_weights = trainer.model.fc.weight.clone()  # type: ignore
 
-    trainer._train_loop()
+    trainer._train_loop()  # type: ignore
 
-    assert not torch.equal(initial_weights, trainer.model.fc.weight)
+    assert not torch.equal(initial_weights, trainer.model.fc.weight)  # type: ignore
 
 
 def test_test_loop_does_not_update_weights(trainer_params: dict[str, Any]):
     trainer: Trainer = Trainer(**trainer_params)
 
     # Capture weights before testing
-    initial_weights = trainer.model.fc.weight.clone()
+    initial_weights = trainer.model.fc.weight.clone()  # type: ignore
 
-    trainer._test_loop()
+    trainer._test_loop()  # type: ignore
 
-    assert torch.equal(initial_weights, trainer.model.fc.weight)
+    assert torch.equal(initial_weights, trainer.model.fc.weight)  # type: ignore
 
 
 @patch("torch.onnx.export")

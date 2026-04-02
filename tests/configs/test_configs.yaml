@@ -1,0 +1,3 @@
+model_configs:
+  model_name: test_model
+  task_type: binary

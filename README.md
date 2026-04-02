@@ -117,7 +117,7 @@ uv sync
 # Running the API Server
 Start the FastAPI Uvicorn server by running:
 ```bash
-uv run -m src.ml_project_template.main
+uv run -m ml_project_template.main
 ```
 
 ---

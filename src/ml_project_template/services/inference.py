@@ -1,6 +1,6 @@
-from src.ml_project_template.model import Model
+from ml_project_template.model import Model  # type: ignore
 from typing import Any
-from src.ml_project_template.configs.model_configs import (
+from ml_project_template.configs.model_configs import (  # type: ignore
     MODEL_PATH,
     MODEL_TYPE,
     TASK_TYPE,
@@ -8,7 +8,7 @@ from src.ml_project_template.configs.model_configs import (
     DECISION_THRESHOLD,
     PREPROC_PIPELINE,
 )
-from src.ml_project_template.services import PostProcessorPipeline, CleanText
+from ml_project_template.utils import PostProcessorPipeline, CleanText  # type: ignore
 
 model = None
 
@@ -37,5 +37,6 @@ def predict(request_input: Any) -> tuple[Any, float]:
         "Model is not loaded, please call load_model() before inference"
     )
     output, prob = model.predict(input=request_input)
+    output = CLASS_MAP[output]
     output = post_processor(output)  # type:ignore - here, output is NOT a string, you can do whatever you want based on the project's needs
     return output, prob

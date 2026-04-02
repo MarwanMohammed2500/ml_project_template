@@ -1,5 +1,5 @@
-from src.ml_project_template.errors import InvalidModelPathError
-from src.ml_project_template.metrics import (
+from ml_project_template.errors import InvalidModelPathError  # type: ignore
+from ml_project_template.metrics import (  # type: ignore
     set_classification_metrics,
 )  # add regression related ones when implementing regression training.
 from typing import Literal, Optional, Any
@@ -8,7 +8,7 @@ import logging
 import torch
 import os
 from torch.utils.data import DataLoader
-from src.ml_project_template.early_stopping import EarlyStopping
+from ml_project_template.early_stopping import EarlyStopping  # type: ignore
 import mlflow
 
 logger = logging.getLogger(__name__)

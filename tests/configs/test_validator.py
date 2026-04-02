@@ -1,4 +1,4 @@
-from src.ml_project_template.configs import validate_env_vars
+from ml_project_template.configs import validate_env_vars  # type: ignore
 import os
 
 
