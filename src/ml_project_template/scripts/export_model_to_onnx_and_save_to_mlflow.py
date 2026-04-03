@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import io
 
-from ml_project_template.configs.validator import ENVS  # type: ignore
+from ml_project_template.core.configs.validator import ENVS  # type: ignore
 
 
 @click.group()
