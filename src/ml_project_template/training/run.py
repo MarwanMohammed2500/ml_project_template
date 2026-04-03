@@ -165,8 +165,9 @@ def training_pipeline(
     )
 
     normalizer = Normalizer(
-        mean=X_train.values.mean(axis=0), std=X_train.values.std(axis=0)
-    )  # type: ignore
+        mean=X_train.values.mean(axis=0),# type: ignore
+        std=X_train.values.std(axis=0),  # type: ignore
+    )
     preproc_pipeline = PreprocessorPipeline(steps=[normalizer])
     processed_X_train = preproc_pipeline(X_train.values)  # type: ignore
     processed_X_test = preproc_pipeline(X_test.values)  # type: ignore

@@ -7,7 +7,7 @@ from ml_project_template.core.configs.model_configs import (  # type: ignore
     DECISION_THRESHOLD,
     PRODUCTION_MODEL_URI,
 )
-from ml_project_template.core.utils import (
+from ml_project_template.core.utils import (  # type: ignore
     PreprocessorPipeline,
     Normalizer,
     PostProcessorPipeline,

@@ -5,8 +5,9 @@
 data/*
 mlruns/
 mlflow.db
-**.csv
-*.json
 artifacts/*
 .env
 project_tree
+**/*.csv
+**/*.json
+**/*.log

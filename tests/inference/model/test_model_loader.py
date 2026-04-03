@@ -59,12 +59,13 @@ def test_regression_raises_not_implemented(mock_session):  # type: ignore
         ):
             model.preload()
 
-
+@patch("mlflow.artifacts.download_artifacts")
 @patch("onnxruntime.InferenceSession")
-def test_predict(mock_session):  # type: ignore
+def test_predict(mock_session, mock_download):  # type: ignore
     mock_run = MagicMock()
     mock_run.return_value = [np.array([0.7], dtype=np.float32)]
     mock_session.return_value.run = mock_run  # type: ignore
+    mock_download.return_value = "/tmp/fake_model_path"
     model = Model(model_uri="models:/SimpleModel_ONNX@production", task_type="binary")
 
     with patch.object(Model, "_verify_model_uri", return_value=True):
