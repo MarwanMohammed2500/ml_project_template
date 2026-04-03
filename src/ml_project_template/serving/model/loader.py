@@ -10,20 +10,41 @@ import re
 
 
 class Model:
-    """Base Class for all model classes"""
+    """
+    Model Wrapper. Acts like the model but abstracts away model management (Loading, Preprocessing, Output parsing/processing, etc.)
+    
+    Args:
+        model_uri: str:
+            MLFlow model URI to load the model
+        
+        task_type: Literal["binary", "multiclass", "regression"]:
+            The model's task type.
+        
+        preproc_pipeline: Optional[PreprocessorPipeline] = None:
+            The Preprocessing Pipeline instance to use when processing the model's inputs
+        
+        **kwargs:
+            Extra Keyword arguments for model configurations (extendable), including:
+                decision_threshold: float:
+                    Binary Decision Threshold
+        
+        This class automatically loads the proper inference strategy based on the passed model type,
+        this allows this class to be open for extensions but almost closed for modifications (You have to add the new strategies if you implement one)
+        
+        
+                
+    """
 
     def __init__(
         self,
         model_uri: str,
-        task_type: Literal["binary", "multiclass", "regression"] | None = None,
+        task_type: Literal["binary", "multiclass", "regression"],
         preproc_pipeline: Optional[PreprocessorPipeline] = None,
-        *args: Any,
         **kwargs: Any,
     ):
         self.model_uri = model_uri
         self.task_type = task_type
         self._model = None
-        self.args = args
         self.kwargs = kwargs
         self._strategy = None
 
@@ -50,11 +71,13 @@ class Model:
         return self._model
 
     def _verify_model_uri(self) -> bool:
+        """Verify that the passed model URI is valid"""
         if not re.compile("^models:/[a-zA-Z0-9_-]+@production$").match(self.model_uri):
             return False
         return True
 
     def _load_model(self):
+        """Load the model from the given URI"""
         if self._verify_model_uri():
             local_path = download_artifacts(artifact_uri=self.model_uri)
             self._model = ort.InferenceSession(
@@ -92,6 +115,12 @@ class Model:
                 )
 
     def predict(self, **kwargs: Any) -> tuple[int, float]:
+        """Perform inference using the loaded model
+        
+        Args:
+            **kwargs:
+                Model specific arguments
+        """
         self.preload()
         assert self._strategy is not None
         if self.preproc_pipeline is not None:
@@ -113,6 +142,9 @@ class _BinaryClassifierModel:
     Args:
         mode_instance: ort.InferenceSession:
             The loaded model instance
+        
+        decision_threshold: float = 0.5:
+            The binary decision threshold
     """
 
     def __init__(
@@ -128,21 +160,19 @@ class _BinaryClassifierModel:
     def sigmoid(self, x: npt.NDArray[np.float32]) -> float:
         return float((1 / (1 + np.exp(-x))).item())
 
-    def _compare_logits_and_threshold(
+    def _process_model_output(
         self, logits: npt.NDArray[np.float32]
     ) -> tuple[int, float]:
         prob = self.sigmoid(logits)
         pred = int(prob > self.decision_threshold)
         return pred, prob
 
-    def _process_model_output(
-        self, logits: npt.NDArray[np.float32]
-    ) -> tuple[int, float]:
-        pred, prob = self._compare_logits_and_threshold(logits)
-        return pred, prob
-
     def predict(self, **kwargs: Any) -> tuple[int, float]:
-        """perform inference using the loaded model"""
+        """Perform inference using the loaded model
+        
+        Args:
+            **kwargs:
+                Model specific arguments"""
         output, prob = None, None
         assert hasattr(self.model_instance, "run")
         ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}
@@ -181,7 +211,11 @@ class _MulticlassClassifierModel:
         return pred, prob
 
     def predict(self, **kwargs: Any) -> tuple[int, float]:
-        """perform inference using the loaded model"""
+        """Perform inference using the loaded model
+        
+        Args:
+            **kwargs:
+                Model specific arguments"""
         output, prob = None, None
         assert hasattr(self.model_instance, "run")
         ort_inputs = {name: kwargs[name] for name in self.input_names if name in kwargs}

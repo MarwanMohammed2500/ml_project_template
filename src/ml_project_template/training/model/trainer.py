@@ -129,6 +129,7 @@ class Trainer:
             )
 
     def _create_optimizer(self):
+        """Creates the optimizer from the loaded model"""
         assert self.model is not None, "Model is not loaded yet."
         assert isinstance(self.model, torch.nn.Module), (
             "Model must be a torch.nn.Module instance"
@@ -140,6 +141,7 @@ class Trainer:
         )
 
     def _create_lr_scheduler(self):
+        """If a Learning Rate Scheduler class is passed, build it from the loaded model and optimizer"""
         assert self.lr_scheduler_class is not None
         assert self.optimizer is not None
         self.lr_scheduler = self.lr_scheduler_class(
@@ -147,6 +149,7 @@ class Trainer:
         )
 
     def _load_model_instance(self):
+        """Loads the model using one of the three methods of loading (model URI, model path, or the model instance itself)"""
         if self.model_uri is not None:
             self.model = mlflow.pytorch.load_model(self.model_uri)  # type: ignore
         elif self.model_path is not None:
@@ -159,12 +162,14 @@ class Trainer:
             )
 
     def _verify_model_path(self) -> bool:
+        """Verifies if the passed model path is valid and correct"""
         assert self.model_path is not None
         if not os.path.exists(self.model_path):
             return False
         return True
 
     def _load_model(self):
+        """Loads the model from the given model path"""
         if self._verify_model_path():
             assert self.model_path is not None
             self.model = torch.load(self.model_path, weights_only=True)
@@ -174,6 +179,10 @@ class Trainer:
             )
 
     def save_as_torch(self, save_path: str, model_name: str, dummy_input: Any):
+        """Exports the model to .pt file.
+        
+        If it fails to script the model it traces it after giving a warning.
+        """
         assert self.model is not None, "No model to save"
         if not model_name.endswith(".pt"):
             model_name += ".pt"
@@ -217,6 +226,7 @@ class Trainer:
         input_names: list[str] = ["input"],
         output_names: list[str] = ["output"],
     ):
+        """Exports the torch model to ONNX."""
         assert self.model is not None, "No model to save"
         if len(save_path) == 0:
             raise ValueError("save_path should not be empty")
@@ -252,6 +262,7 @@ class Trainer:
             )
 
     def _load_adaptor(self):
+        """Loads the proper training adaptor for training"""
         assert self.model is not None, "Model is not loaded, cannot load strategy"
         if self.task_type == "binary":
             self._strategy = _BinaryClassifierTrainer(
@@ -344,8 +355,15 @@ class Trainer:
         Returns:
             train_loss: float:
                 Training Loss
+                
             test_loss: float:
                 Testing Loss
+                
+            train_metrics: dict[str, float]
+                The measured metrics during training.
+            
+            test_metrics: dict[str, float]:
+                The measured metrics during testing.
         """
         assert self.model is not None, "Model is not loaded, cannot perform training"
         self.model.to(self.device, non_blocking=True)
@@ -401,7 +419,8 @@ class Trainer:
 
 class _TrainingStrategy:
     """
-    This class acts as an abstraction layer for a training strategy, it defines the step function that performs a training step and returns the loss and the predictions to log the metrics with.
+    This class acts as the base class for the abstraction classes for a given training strategy,
+    it defines the step function that performs a training step and returns the loss and the predictions to log the metrics with.
 
     Args:
         loss_fn: torch.nn.Module:

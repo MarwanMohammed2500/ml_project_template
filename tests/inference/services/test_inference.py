@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock
 from ml_project_template.serving.services import inference  # type: ignore
 
-@patch("ml_project_template.serving.services.inference.load_pickled_assets")
+@patch("ml_project_template.serving.services.inference.load_assets")
 @patch("ml_project_template.serving.services.inference.download_artifacts")
 @patch("ml_project_template.serving.services.inference.Model")
 def test_predict(mock_model_cls, mock_download, mock_load_pipeline):  # type: ignore

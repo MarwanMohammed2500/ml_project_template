@@ -26,7 +26,16 @@ logger = logging.getLogger(__name__)
 model = None
 
 
-def load_pickled_assets() -> PreprocessorPipeline:
+def load_assets() -> PreprocessorPipeline:
+    """Load the model assets (Pickle objects, JSON fallbacks)
+    
+    Args:
+        None
+    
+    Returns:
+        pipeline: PreprocessorPipeline:
+            The preprocessing pipeline object
+    """
     local_dir = download_artifacts(artifact_uri=PRODUCTION_MODEL_URI)
     pipeline_path = None
     for root, _, files in os.walk(local_dir):
@@ -64,7 +73,7 @@ def load_model():
     global model
     if model is None:
         assert TASK_TYPE in ["binary", "multiclass", "regression"]
-        preproc_pipeline = load_pickled_assets()
+        preproc_pipeline = load_assets()
         model = Model(
             model_uri=PRODUCTION_MODEL_URI,
             model_type=MODEL_TYPE,
@@ -80,7 +89,19 @@ post_processor = PostProcessorPipeline(steps=[Translate(), CleanText()])
 
 
 def predict(request_input: Any) -> tuple[Any, float]:
-    """performs prediction using the loaded model"""
+    """performs prediction using the loaded model
+    
+    Args:
+        request_input: Any:
+            The input from the request
+        
+    Returns:
+        output: Any:
+            The model's output
+        
+        prob: float:
+            Model confidence
+    """
     assert model is not None, (
         "Model is not loaded, please call load_model() before inference"
     )
