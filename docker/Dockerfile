@@ -8,14 +8,14 @@ ENV UV_COMPILE_BYTECODE=1
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --locked --no-install-project --no-dev
-
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     python3-dev \
     libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
+
+RUN uv sync --locked --no-install-project --no-dev
 
 # --- Stage 2: Runtime ---
 FROM python:3.12-slim-bookworm
