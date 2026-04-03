@@ -2,7 +2,11 @@ name: CI Suite
 on: [push]
 
 env:
-  APP_ENV: test
+  APP_ENV: ${{ vars.APP_ENV }}
+  MLFLOW_DB_NAME: ${{ secrets.MLFLOW_DB_NAME }}
+  MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
+  MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+  
 
 jobs:
   test-and-build:
