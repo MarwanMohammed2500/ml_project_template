@@ -28,10 +28,10 @@ model = None
 
 def load_assets() -> PreprocessorPipeline:
     """Load the model assets (Pickle objects, JSON fallbacks)
-    
+
     Args:
         None
-    
+
     Returns:
         pipeline: PreprocessorPipeline:
             The preprocessing pipeline object
@@ -90,15 +90,15 @@ post_processor = PostProcessorPipeline(steps=[Translate(), CleanText()])
 
 def predict(request_input: Any) -> tuple[Any, float]:
     """performs prediction using the loaded model
-    
+
     Args:
         request_input: Any:
             The input from the request
-        
+
     Returns:
         output: Any:
             The model's output
-        
+
         prob: float:
             Model confidence
     """

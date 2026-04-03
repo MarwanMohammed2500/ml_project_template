@@ -4,6 +4,7 @@ from ml_project_template.core.errors.exceptions import InvalidModelPathError  # 
 import pytest
 import numpy as np
 
+
 @patch("ml_project_template.serving.model.loader.download_artifacts")
 @patch("onnxruntime.InferenceSession")
 def test_binary_model_preload_initializes_strategy(mock_session, mock_download):  # type: ignore
@@ -54,7 +55,7 @@ def test_multiclass_model_preload_initializes_strategy(mock_session, mock_downlo
 def test_regression_raises_not_implemented(mock_session, mock_download):  # type: ignore
     mock_session.return_value = MagicMock()
     mock_download.return_value = "/tmp/fake_model_path"
-    
+
     model = Model(
         model_uri="models:/SimpleModel_ONNX@production", task_type="regression"
     )
@@ -64,6 +65,7 @@ def test_regression_raises_not_implemented(mock_session, mock_download):  # type
             NotImplementedError, match="Regression task is not implemented"
         ):
             model.preload()
+
 
 @patch("ml_project_template.serving.model.loader.download_artifacts")
 @patch("onnxruntime.InferenceSession")

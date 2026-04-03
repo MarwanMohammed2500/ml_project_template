@@ -180,7 +180,7 @@ class Trainer:
 
     def save_as_torch(self, save_path: str, model_name: str, dummy_input: Any):
         """Exports the model to .pt file.
-        
+
         If it fails to script the model it traces it after giving a warning.
         """
         assert self.model is not None, "No model to save"
@@ -355,13 +355,13 @@ class Trainer:
         Returns:
             train_loss: float:
                 Training Loss
-                
+
             test_loss: float:
                 Testing Loss
-                
+
             train_metrics: dict[str, float]
                 The measured metrics during training.
-            
+
             test_metrics: dict[str, float]:
                 The measured metrics during testing.
         """

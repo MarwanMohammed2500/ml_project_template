@@ -3,7 +3,7 @@ from ml_project_template.core.schemas import TrainingConfigs  # type: ignore
 import torch
 from torch import nn, optim
 from .model import Trainer
-from .architecture import create_data_loader
+from .utils import create_data_loader
 from .early_stopping import EarlyStopping
 from .utils import count_model_parameters
 from ml_project_template.core.utils import PreprocessorPipeline, Normalizer  # type: ignore
@@ -165,7 +165,7 @@ def training_pipeline(
     )
 
     normalizer = Normalizer(
-        mean=X_train.values.mean(axis=0),# type: ignore
+        mean=X_train.values.mean(axis=0),  # type: ignore
         std=X_train.values.std(axis=0),  # type: ignore
     )
     preproc_pipeline = PreprocessorPipeline(steps=[normalizer])

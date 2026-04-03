@@ -41,7 +41,7 @@ class EarlyStopping:
 
     def load_best_model(self, model: torch.nn.Module) -> None:
         """Loads the best state the model was in during training.
-        
+
         Args:
             model: torch.nn.Module:
                 The model to load the state dictionary into.

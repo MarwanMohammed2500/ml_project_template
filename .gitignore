@@ -11,3 +11,4 @@ project_tree
 **/*.csv
 **/*.json
 **/*.log
+artifacts/

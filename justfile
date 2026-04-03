@@ -12,6 +12,7 @@ test:
 clean:
     rm -rf .pytest_cache
     rm -rf .ruff_cache
+    find . -type d -name "__pycache__" -exec rm -r {} +
     docker-compose -f docker/docker-compose.dev.yaml down -v
 
 # Run the linter and auto-formatter (ruff in this case)

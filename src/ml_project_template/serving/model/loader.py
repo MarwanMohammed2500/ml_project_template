@@ -12,27 +12,27 @@ import re
 class Model:
     """
     Model Wrapper. Acts like the model but abstracts away model management (Loading, Preprocessing, Output parsing/processing, etc.)
-    
+
     Args:
         model_uri: str:
             MLFlow model URI to load the model
-        
+
         task_type: Literal["binary", "multiclass", "regression"]:
             The model's task type.
-        
+
         preproc_pipeline: Optional[PreprocessorPipeline] = None:
             The Preprocessing Pipeline instance to use when processing the model's inputs
-        
+
         **kwargs:
             Extra Keyword arguments for model configurations (extendable), including:
                 decision_threshold: float:
                     Binary Decision Threshold
-        
+
         This class automatically loads the proper inference strategy based on the passed model type,
         this allows this class to be open for extensions but almost closed for modifications (You have to add the new strategies if you implement one)
-        
-        
-                
+
+
+
     """
 
     def __init__(
@@ -116,7 +116,7 @@ class Model:
 
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         """Perform inference using the loaded model
-        
+
         Args:
             **kwargs:
                 Model specific arguments
@@ -142,7 +142,7 @@ class _BinaryClassifierModel:
     Args:
         mode_instance: ort.InferenceSession:
             The loaded model instance
-        
+
         decision_threshold: float = 0.5:
             The binary decision threshold
     """
@@ -169,7 +169,7 @@ class _BinaryClassifierModel:
 
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         """Perform inference using the loaded model
-        
+
         Args:
             **kwargs:
                 Model specific arguments"""
@@ -212,7 +212,7 @@ class _MulticlassClassifierModel:
 
     def predict(self, **kwargs: Any) -> tuple[int, float]:
         """Perform inference using the loaded model
-        
+
         Args:
             **kwargs:
                 Model specific arguments"""
