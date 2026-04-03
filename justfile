@@ -8,10 +8,11 @@ dev:
 test:
     uv run pytest tests/
 
-# Stop and remove all containers, networks, and volumes. And clean pytest cache.
+# Stop and remove all containers, networks, and volumes. Also cleans pytest and ruff cache.
 clean:
     rm -rf .pytest_cache
-    docker-compose down -v
+    rm -rf .ruff_cache
+    docker-compose -f docker/docker-compose.dev.yaml down -v
 
 # Run the linter and auto-formatter (ruff in this case)
 lint:
@@ -33,5 +34,6 @@ release_new_onnx_version version:
     --input_dim 2 \
     --path_to_dataset /Users/marwanmohammed/Codes/ml_project_template/data/raw/binary_rawdata.csv
 
-train_model yaml_path="configs/training_configs.yaml":
+# Train the model, uses yaml_path to load yaml configurations sepecific for the model trainer
+train yaml_path="configs/training_configs.yaml":
     uv run -m src.ml_project_template.training.run training-pipeline --yaml_path {{yaml_path}}
