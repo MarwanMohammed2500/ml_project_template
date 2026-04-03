@@ -1,11 +1,10 @@
-from torch.utils.data import DataLoader
-from ..architecture.dataset import MockDataset
+from torch.utils.data import DataLoader, Dataset
 from typing import Any
 
 
 def create_data_loader(
-    features: Any,
-    labels: Any,
+    dataset_class: type[Dataset[Any]],
+    dataset_inputs: dict[str, Any],
     batch_size: int = 64,
     shuffle: bool = False,
 ) -> DataLoader[Any]:
@@ -28,7 +27,7 @@ def create_data_loader(
         DataLoader[Any]:
             The `DataLoader` object built from the dataset
     """
-    dataset = MockDataset(features=features, labels=labels)
+    dataset = dataset_class(**dataset_inputs)
     pin_memory = True
     return DataLoader(
         dataset=dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=pin_memory

@@ -1,9 +1,7 @@
 from ml_project_template.serving.model import Model  # type: ignore
 from typing import Any
 from ml_project_template.core.configs.model_configs import (  # type: ignore
-    MODEL_TYPE,
     TASK_TYPE,
-    CLASS_MAP,
     DECISION_THRESHOLD,
     PRODUCTION_MODEL_URI,
 )
@@ -76,9 +74,7 @@ def load_model():
         preproc_pipeline = load_assets()
         model = Model(
             model_uri=PRODUCTION_MODEL_URI,
-            model_type=MODEL_TYPE,
             task_type=TASK_TYPE,
-            class_map=CLASS_MAP,
             decision_threshold=DECISION_THRESHOLD,
             preproc_pipeline=preproc_pipeline,
         )

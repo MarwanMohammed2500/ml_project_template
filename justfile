@@ -39,6 +39,7 @@ release_new_onnx_version version:
 train yaml_path="configs/training_configs.yaml":
     uv run -m src.ml_project_template.training.run training-pipeline --yaml_path {{yaml_path}}
 
+# Launch the Gunicorn server
 serve port="8000" num_workers="4" timeout="120":
     gunicorn src.ml_project_template.serving.api.app:app \
      --workers {{num_workers}} \

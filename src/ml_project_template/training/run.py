@@ -4,6 +4,7 @@ import torch
 from torch import nn, optim
 from .model import Trainer
 from .utils import create_data_loader
+from .architecture import MockDataset
 from .early_stopping import EarlyStopping
 from .utils import count_model_parameters
 from ml_project_template.core.utils import PreprocessorPipeline, Normalizer  # type: ignore
@@ -42,10 +43,19 @@ def create_train_and_test_dataloaders(
 ) -> tuple[DataLoader[Any], DataLoader[Any]]:
 
     X_train, X_test, y_train, y_test = train_test_splitted_data
+    train_dataset_input = {"features": X_train, "labels": y_train}
+    train_dataset_input = {"features": X_test, "labels": y_test}
     train_dataloader = create_data_loader(
-        X_train, y_train, batch_size=batch_size, shuffle=True
-    )  # type: ignore
-    test_dataloader = create_data_loader(X_test, y_test, batch_size=batch_size)  # type: ignore
+        batch_size=batch_size,
+        shuffle=True,
+        dataset_class=MockDataset,
+        dataset_inputs=train_dataset_input,
+    )
+    test_dataloader = create_data_loader(
+        batch_size=batch_size,
+        dataset_class=MockDataset,
+        dataset_inputs=train_dataset_input,
+    )
     return train_dataloader, test_dataloader
 
 
