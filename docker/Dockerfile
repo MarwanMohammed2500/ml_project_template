@@ -22,8 +22,7 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy the source code
-COPY src/ml_project_template/api ./src/ml_project_template/api
-COPY src/ml_project_template/inference ./src/ml_project_template/inference
+COPY src/ml_project_template/serving ./src/ml_project_template/serving
 COPY src/ml_project_template/core ./src/ml_project_template/core
 
 
