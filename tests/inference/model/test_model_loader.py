@@ -59,7 +59,7 @@ def test_regression_raises_not_implemented(mock_session):  # type: ignore
         ):
             model.preload()
 
-@patch("ml_project_template.serving.model.loader.download_artifacts")
+@patch("ml_project_template.serving.model.download_artifacts")
 @patch("onnxruntime.InferenceSession")
 def test_predict(mock_session, mock_download):  # type: ignore
     mock_run = MagicMock()

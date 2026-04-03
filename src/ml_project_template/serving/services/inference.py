@@ -28,7 +28,7 @@ model = None
 
 def load_pickled_assets() -> PreprocessorPipeline:
     local_dir = download_artifacts(artifact_uri=PRODUCTION_MODEL_URI)
-
+    pipeline_path = None
     for root, _, files in os.walk(local_dir):
         for f in files:
             if f.endswith(".pkl"):
@@ -36,7 +36,7 @@ def load_pickled_assets() -> PreprocessorPipeline:
     try:
         with open(pipeline_path, "rb") as f:  # type: ignore
             pipeline = pickle.load(f)  # type: ignore
-    except (pickle.UnpicklingError, ImportError, IndexError) as e:
+    except (pickle.UnpicklingError, ImportError, IndexError, TypeError) as e:
         # PLAN B: Reconstruct from JSON constants
         logger.warning(
             f"Pickle load failed. Attempting reconstruction from constants...\nerror: {e}",
