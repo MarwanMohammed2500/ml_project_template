@@ -1,11 +1,13 @@
 services:
   ml_api:
-    build: ..
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: ml_template_service
     ports:
       - "8000:8000"
     volumes:
-      - ./checkpoints:/app/checkpoints:ro
+      - ../checkpoints:/app/checkpoints:ro
     environment:
       - APP_MODE=dev
     restart: unless-stopped
