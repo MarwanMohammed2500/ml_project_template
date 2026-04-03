@@ -6,13 +6,6 @@ WORKDIR /app
 # Enable bytecode compilation for faster startup
 ENV UV_COMPILE_BYTECODE=1
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    python3-dev \
-    libboost-all-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY pyproject.toml uv.lock ./
 
 RUN uv sync --locked --no-install-project --no-dev
