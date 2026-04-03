@@ -65,7 +65,6 @@ def load_model():
     if model is None:
         assert TASK_TYPE in ["binary", "multiclass", "regression"]
         preproc_pipeline = load_pickled_assets()
-        assert isinstance(preproc_pipeline, PreprocessorPipeline)
         model = Model(
             model_uri=PRODUCTION_MODEL_URI,
             model_type=MODEL_TYPE,
