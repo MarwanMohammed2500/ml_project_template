@@ -1,6 +1,6 @@
 services:
   ml_api:
-    build: .
+    build: ..
     container_name: ml_template_service
     ports:
       - "8000:8000"

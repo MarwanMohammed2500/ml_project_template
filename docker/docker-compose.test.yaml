@@ -1,6 +1,8 @@
 services:
   ml_api:
-    build: .
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     container_name: ml_template_service
     ports:
       - "8000:8000"
