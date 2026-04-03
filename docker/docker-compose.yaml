@@ -5,9 +5,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./checkpoints:/app/checkpoints:ro
+      - ../mlruns:/app/mlruns:ro
+      - ../mlflow.db:/app/mlflow.db:ro
     environment:
       - APP_MODE=prod
+      - MLFLOW_TRACKING_URI=${MLFLOW_EXPERIMENT_NAME}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

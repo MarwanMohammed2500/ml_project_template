@@ -223,3 +223,21 @@
 {"timestamp": "2026-04-03T07:12:22.357607+00:00", "level": "ERROR", "logger": "test_logger", "message": "This is an error message", "taskName": null}
 {"timestamp": "2026-04-03T07:12:22.357650+00:00", "level": "CRITICAL", "logger": "test_logger", "message": "This is a critical message", "taskName": null}
 {"timestamp": "2026-04-03T07:12:24.368210+00:00", "level": "INFO", "logger": "ml_project_template.model.trainer", "message": "Model exported to ONNX successfully and saved to /tmp/test_dir/test_model", "taskName": null, "save_path": "/tmp/test_dir/test_model", "format": "onnx"}
+{"timestamp": "2026-04-03T09:38:08.753115+00:00", "level": "DEBUG", "logger": "test_logger", "message": "This is a debug message", "taskName": null}
+{"timestamp": "2026-04-03T09:38:08.753283+00:00", "level": "INFO", "logger": "test_logger", "message": "This is an info message", "taskName": null}
+{"timestamp": "2026-04-03T09:38:08.753323+00:00", "level": "WARNING", "logger": "test_logger", "message": "This is a warning message", "taskName": null}
+{"timestamp": "2026-04-03T09:38:08.753363+00:00", "level": "ERROR", "logger": "test_logger", "message": "This is an error message", "taskName": null}
+{"timestamp": "2026-04-03T09:38:08.753405+00:00", "level": "CRITICAL", "logger": "test_logger", "message": "This is a critical message", "taskName": null}
+{"timestamp": "2026-04-03T09:38:11.083516+00:00", "level": "INFO", "logger": "ml_project_template.model.trainer", "message": "Model exported to ONNX successfully and saved to /tmp/test_dir/test_model", "taskName": null, "save_path": "/tmp/test_dir/test_model", "format": "onnx"}
+{"timestamp": "2026-04-03T09:39:44.388518+00:00", "level": "DEBUG", "logger": "test_logger", "message": "This is a debug message", "taskName": null}
+{"timestamp": "2026-04-03T09:39:44.388692+00:00", "level": "INFO", "logger": "test_logger", "message": "This is an info message", "taskName": null}
+{"timestamp": "2026-04-03T09:39:44.388735+00:00", "level": "WARNING", "logger": "test_logger", "message": "This is a warning message", "taskName": null}
+{"timestamp": "2026-04-03T09:39:44.388772+00:00", "level": "ERROR", "logger": "test_logger", "message": "This is an error message", "taskName": null}
+{"timestamp": "2026-04-03T09:39:44.388807+00:00", "level": "CRITICAL", "logger": "test_logger", "message": "This is a critical message", "taskName": null}
+{"timestamp": "2026-04-03T09:39:46.259856+00:00", "level": "INFO", "logger": "ml_project_template.model.trainer", "message": "Model exported to ONNX successfully and saved to /tmp/test_dir/test_model", "taskName": null, "save_path": "/tmp/test_dir/test_model", "format": "onnx"}
+{"timestamp": "2026-04-03T09:40:12.783097+00:00", "level": "DEBUG", "logger": "test_logger", "message": "This is a debug message", "taskName": null}
+{"timestamp": "2026-04-03T09:40:12.783322+00:00", "level": "INFO", "logger": "test_logger", "message": "This is an info message", "taskName": null}
+{"timestamp": "2026-04-03T09:40:12.783369+00:00", "level": "WARNING", "logger": "test_logger", "message": "This is a warning message", "taskName": null}
+{"timestamp": "2026-04-03T09:40:12.783408+00:00", "level": "ERROR", "logger": "test_logger", "message": "This is an error message", "taskName": null}
+{"timestamp": "2026-04-03T09:40:12.783446+00:00", "level": "CRITICAL", "logger": "test_logger", "message": "This is a critical message", "taskName": null}
+{"timestamp": "2026-04-03T09:40:15.433829+00:00", "level": "INFO", "logger": "ml_project_template.model.trainer", "message": "Model exported to ONNX successfully and saved to /tmp/test_dir/test_model", "taskName": null, "save_path": "/tmp/test_dir/test_model", "format": "onnx"}

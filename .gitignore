@@ -9,3 +9,4 @@ mlflow.db
 src/ml_project_template/notebooks/model_summary.json
 artifacts/*
 .env
+project_tree

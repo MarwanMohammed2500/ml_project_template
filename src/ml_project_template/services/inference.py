@@ -1,14 +1,15 @@
 from ml_project_template.model import Model  # type: ignore
 from typing import Any
 from ml_project_template.configs.model_configs import (  # type: ignore
-    MODEL_PATH,
     MODEL_TYPE,
     TASK_TYPE,
     CLASS_MAP,
     DECISION_THRESHOLD,
     PREPROC_PIPELINE,
+    PRODUCTION_MODEL_URI
 )
 from ml_project_template.utils import PostProcessorPipeline, CleanText  # type: ignore
+
 
 model = None
 
@@ -18,7 +19,7 @@ def load_model():
     global model
     if model is None:
         model = Model(
-            model_path=MODEL_PATH,
+            model_uri=PRODUCTION_MODEL_URI,
             model_type=MODEL_TYPE,
             task_type=TASK_TYPE,
             class_map=CLASS_MAP,

@@ -1,8 +1,8 @@
 """Defines the API routes"""
 
 from fastapi import APIRouter
-from ml_project_template.schemas import ModelRequest, ModelResponse
-from ml_project_template.services import predict
+from ml_project_template.schemas import ModelRequest, ModelResponse # type: ignore
+from ml_project_template.services import predict # type: ignore
 
 router = APIRouter(prefix="/api", tags=["inference"])
 

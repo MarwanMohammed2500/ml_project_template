@@ -1,4 +1,3 @@
-import os
 from typing import Any, Literal, Optional
 import numpy as np
 import numpy.typing as npt
@@ -6,20 +5,21 @@ import onnxruntime as ort  # type: ignore
 from scipy.special import softmax  # type: ignore
 from ml_project_template.errors import InvalidModelPathError  # type: ignore
 from ml_project_template.utils import PreprocessorPipeline  # type: ignore
-
+from mlflow.artifacts import download_artifacts
+import re
 
 class Model:
     """Base Class for all model classes"""
 
     def __init__(
         self,
-        model_path: str,
+        model_uri: str,
         task_type: Literal["binary", "multiclass", "regression"] | None = None,
         preproc_pipeline: Optional[PreprocessorPipeline] = None,
         *args: Any,
         **kwargs: Any,
     ):
-        self.model_path = model_path
+        self.model_uri = model_uri
         self.task_type = task_type
         self._model = None
         self.args = args
@@ -48,18 +48,16 @@ class Model:
         self.preload()
         return self._model
 
-    def _verify_model_path(self) -> bool:
-        if not os.path.exists(self.model_path):
+    def _verify_model_uri(self) -> bool:
+        if not re.compile("^models:/[a-zA-Z0-9_-]+@production$").match(self.model_uri):
             return False
-        target_ext = ".onnx"
-        if self.model_path.endswith(target_ext):
-            return True
-        return False
+        return True
 
     def _load_model(self):
-        if self._verify_model_path():
+        if self._verify_model_uri():
+            local_path = download_artifacts(artifact_uri=self.model_uri)
             self._model = ort.InferenceSession(
-                self.model_path,
+                f"{local_path}/model.onnx",
                 providers=[
                     "CPUExecutionProvider"
                 ],  # if working with Nvidia GPU, install onnxruntime-gpu and add "CUDAExecutionProvider" as the first item in this list
