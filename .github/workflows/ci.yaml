@@ -1,6 +1,9 @@
 name: CI Suite
 on: [push]
 
+env:
+  APP_ENV: test
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
