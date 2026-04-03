@@ -32,3 +32,6 @@ release_new_onnx_version version:
     --model_uri "models:/SimpleModel/{{version}}" \
     --input_dim 2 \
     --path_to_dataset /Users/marwanmohammed/Codes/ml_project_template/data/raw/binary_rawdata.csv
+
+train_model yaml_path="configs/training_configs.yaml":
+    uv run -m src.ml_project_template.training.run training-pipeline --yaml_path {{yaml_path}}

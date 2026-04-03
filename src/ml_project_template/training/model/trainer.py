@@ -30,8 +30,8 @@ class Trainer:
         loss_fn: torch.nn.modules.loss:
             The loss function to use
 
-        optimizer: torch.optim:
-            The optimizer to use
+        optimizer_class: type[torch.optim.Optimizer]:
+            The optimizer class to use
 
         train_dataloader: torch.utils.data.DataLoader:
             The training set in a PyTorch DataLoader
@@ -45,8 +45,14 @@ class Trainer:
         pretrained_model_path: Optional[str] = None:
             The path to the pretrained model weights to finetune, defaults to None.
 
-        lr_scheduler: Optional[torch.optim.lr_scheduler] = None:
-            The learning rate scheduler, defaults to None
+        lr_scheduler_class: Optional[type[torch.optim.lr_scheduler.LRScheduler]] = None:
+            The learning rate scheduler (class not instance), defaults to None
+
+        lr_scheduler_kwargs: Optional[dict[str, Any]] = None:
+            Any arguments specific for initializing the Learning Rate Scheduler
+
+        optimizer_kwargs: Optional[dict[str, Any]] = None:
+            Any arguments specific for initializing the Optimizer
 
         early_stopping_class: Optional[type] = None:
             Early Stopping class to use, defaults to None
@@ -66,14 +72,17 @@ class Trainer:
         task_type: Literal["regression", "binary", "multiclass"],
         num_epochs: int,
         loss_fn: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
+        optimizer_class: type[torch.optim.Optimizer],
+        learning_rate: float,
         train_dataloader: DataLoader[Any],
         test_dataloader: DataLoader[Any],
         num_classes: int,
+        lr_scheduler_kwargs: Optional[dict[str, Any]] = None,
+        optimizer_kwargs: Optional[dict[str, Any]] = None,
         model_instance: Optional[torch.nn.Module] = None,
         model_path: Optional[str] = None,
         model_uri: Optional[str] = None,
-        lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+        lr_scheduler_class: Optional[type[torch.optim.lr_scheduler.LRScheduler]] = None,
         early_stopper: Optional[EarlyStopping] = None,
         verbose: bool = True,
         binary_decision_threshold: float = 0.5,
@@ -82,32 +91,36 @@ class Trainer:
         ),
     ):
         self.binary_decision_threshold = binary_decision_threshold
+        self.lr_scheduler_kwargs = lr_scheduler_kwargs or {}
+        self.optimizer_kwargs = optimizer_kwargs or {}
+        self.lr_scheduler_class = lr_scheduler_class
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
+        self.optimizer_class = optimizer_class
+        self.model_instance = model_instance
         self.early_stopper = early_stopper
+        self.learning_rate = learning_rate
         self.device = torch.device(device)
-        self.model_path = str(model_path)
-        self.lr_scheduler = lr_scheduler
         self.num_classes = num_classes
         self.num_epochs = num_epochs
+        self.model_path = model_path
         self.task_type = task_type
-        self.optimizer = optimizer
+        self.model_uri = model_uri
         self.loss_fn = loss_fn
         self.verbose = verbose
 
         self._strategy = None
 
         self.model: torch.nn.Module
-        if model_uri is not None:
-            self.model = mlflow.pytorch.load_model(model_uri)  # type: ignore
-        elif model_path is not None:
-            self._load_model()
-        elif model_instance is not None:
-            self.model = model_instance
-        else:
-            raise ValueError(
-                "Either `model_instance`, `model_path`, or `model_uri` should be passed, got None for all"
-            )
+        self._load_model_instance()
+
+        self.optimizer: torch.optim.Optimizer
+        self._create_optimizer()
+
+        self.lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler]
+        if self.lr_scheduler_class is not None:
+            self._create_lr_scheduler()
+
         self._load_adaptor()
 
         if self.task_type == "regression":
@@ -115,13 +128,45 @@ class Trainer:
                 "Still didn't implement training regression models"
             )
 
+    def _create_optimizer(self):
+        assert self.model is not None, "Model is not loaded yet."
+        assert isinstance(self.model, torch.nn.Module), (
+            "Model must be a torch.nn.Module instance"
+        )
+        self.optimizer = self.optimizer_class(
+            self.model.parameters(),
+            lr=self.learning_rate,  # type: ignore
+            **self.optimizer_kwargs,
+        )
+
+    def _create_lr_scheduler(self):
+        assert self.lr_scheduler_class is not None
+        assert self.optimizer is not None
+        self.lr_scheduler = self.lr_scheduler_class(
+            optimizer=self.optimizer, **self.lr_scheduler_kwargs
+        )
+
+    def _load_model_instance(self):
+        if self.model_uri is not None:
+            self.model = mlflow.pytorch.load_model(self.model_uri)  # type: ignore
+        elif self.model_path is not None:
+            self._load_model()
+        elif self.model_instance is not None:
+            self.model = self.model_instance
+        else:
+            raise ValueError(
+                "Either `model_instance`, `model_path`, or `model_uri` should be passed, got None for all"
+            )
+
     def _verify_model_path(self) -> bool:
+        assert self.model_path is not None
         if not os.path.exists(self.model_path):
             return False
         return True
 
     def _load_model(self):
         if self._verify_model_path():
+            assert self.model_path is not None
             self.model = torch.load(self.model_path, weights_only=True)
         else:
             raise InvalidModelPathError(
@@ -251,7 +296,7 @@ class Trainer:
             self._strategy.metrics.update(batch_preds, y_batch)
             train_loss += batch_loss
 
-        if self.lr_scheduler:
+        if self.lr_scheduler is not None:
             self.lr_scheduler.step()
 
         train_metrics = self._strategy.metrics.compute()
@@ -260,7 +305,7 @@ class Trainer:
         train_loss /= len(self.train_dataloader)
         return train_loss, train_metrics
 
-    def _test_loop(self) -> tuple[float, dict[str, float]]:
+    def test_loop(self) -> tuple[float, dict[str, float]]:
         assert self.model is not None, (
             "Model is not loaded, cannot perform testing loop"
         )
@@ -289,7 +334,9 @@ class Trainer:
         test_loss /= len(self.test_dataloader)
         return test_loss, test_metrics
 
-    def train(self, log_every: int = 10) -> tuple[float, float]:
+    def train(
+        self, log_every: int = 10
+    ) -> tuple[float, float, dict[str, float], dict[str, float]]:
         """
         Trains the provided model
 
@@ -306,7 +353,7 @@ class Trainer:
         train_metrics, test_metrics = {}, {}
         for epoch in tqdm(range(self.num_epochs)):
             train_loss, train_metrics = self._train_loop()
-            test_loss, test_metrics = self._test_loop()
+            test_loss, test_metrics = self.test_loop()
 
             if self.verbose:
                 if epoch % log_every == 0:
@@ -349,7 +396,7 @@ class Trainer:
             f""" Final Results:\nTraining Loss = {train_loss:.2f}\t| Testing Loss = {test_loss:.2f}\nTraining Metrics:\n    {train_metrics_str}\t| Testing Metrics\n    {test_metrics_str}
             """
         )
-        return train_loss, test_loss
+        return train_loss, test_loss, train_metrics, test_metrics
 
 
 class _TrainingStrategy:
@@ -391,10 +438,15 @@ class _TrainingStrategy:
         with context:
             logits = self.model(X)
             loss = self.loss_fn(input=logits, target=y)
+
             if train:
+                assert self.optimizer is not None, (
+                    "Optimizer must be provided for training step"
+                )
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
+
         return loss, logits
 
 

@@ -8,6 +8,7 @@ from ml_project_template.core.utils import PreprocessorPipeline  # type: ignore
 from mlflow.artifacts import download_artifacts
 import re
 
+
 class Model:
     """Base Class for all model classes"""
 

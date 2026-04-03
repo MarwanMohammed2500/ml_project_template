@@ -6,7 +6,7 @@ data/*
 mlruns/
 mlflow.db
 **.csv
-src/ml_project_template/notebooks/model_summary.json
+*.json
 artifacts/*
 .env
 project_tree

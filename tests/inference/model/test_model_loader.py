@@ -10,7 +10,9 @@ def test_binary_model_preload_initializes_strategy(mock_session):  # type: ignor
     mock_session.return_value = MagicMock()
 
     model = Model(
-        model_uri='models:/SimpleModel_ONNX@production', task_type="binary", decision_threshold=0.7
+        model_uri="models:/SimpleModel_ONNX@production",
+        task_type="binary",
+        decision_threshold=0.7,
     )
 
     with patch.object(Model, "_verify_model_uri", return_value=True):
@@ -29,7 +31,7 @@ def test_multiclass_model_preload_initializes_strategy(mock_session):  # type: i
     mock_session.return_value = MagicMock()
 
     model = Model(
-        model_uri='models:/SimpleModel_ONNX@production',
+        model_uri="models:/SimpleModel_ONNX@production",
         task_type="multiclass",
     )
 
@@ -47,7 +49,9 @@ def test_multiclass_model_preload_initializes_strategy(mock_session):  # type: i
 @patch("onnxruntime.InferenceSession")
 def test_regression_raises_not_implemented(mock_session):  # type: ignore
     mock_session.return_value = MagicMock()
-    model = Model(model_uri="models:/SimpleModel_ONNX@production", task_type="regression")
+    model = Model(
+        model_uri="models:/SimpleModel_ONNX@production", task_type="regression"
+    )
 
     with patch.object(Model, "_verify_model_uri", return_value=True):
         with pytest.raises(

@@ -73,7 +73,7 @@ def test_test_loop_does_not_update_weights(trainer_params: dict[str, Any]):
     # Capture weights before testing
     initial_weights = trainer.model.fc.weight.clone()  # type: ignore
 
-    trainer._test_loop()  # type: ignore
+    trainer.test_loop()  # type: ignore
 
     assert torch.equal(initial_weights, trainer.model.fc.weight)  # type: ignore
 

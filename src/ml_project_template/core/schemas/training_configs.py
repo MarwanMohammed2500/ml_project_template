@@ -9,6 +9,12 @@ class TrainerConfigs(BaseModel):
     model_uri: Optional[str] = None
     verbose: bool
     binary_decision_threshold: float
+    learning_rate: float
+    batch_size: int
+    early_stopping_patience: int
+    early_stopping_delta: float
+    lr_scheduler_gamma: float
+    lr_scheduler_step_size: int
 
 
 class DataConfigs(BaseModel):

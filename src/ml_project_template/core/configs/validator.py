@@ -37,9 +37,8 @@ def validate_env_vars() -> dict[str, Any]:
     return validated_vars
 
 
-ENVS = validate_env_vars()
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../..")
-)  # adjust as needed
-MLFLOW_DB = os.path.join(PROJECT_ROOT, ENVS["MLFLOW_DB_NAME"])
-ARTIFACT_ROOT = os.path.join(PROJECT_ROOT, "mlruns")
+ENVS: dict[str, Any] = validate_env_vars()
+
+PROJECT_ROOT: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+MLFLOW_DB: str = os.path.join(PROJECT_ROOT, ENVS["MLFLOW_DB_NAME"])
+ARTIFACT_ROOT: str = os.path.join(PROJECT_ROOT, "mlruns")

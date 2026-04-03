@@ -6,7 +6,7 @@ from ml_project_template.core.configs.model_configs import (  # type: ignore
     CLASS_MAP,
     DECISION_THRESHOLD,
     PREPROC_PIPELINE,
-    PRODUCTION_MODEL_URI
+    PRODUCTION_MODEL_URI,
 )
 from ml_project_template.core.utils import PostProcessorPipeline, CleanText  # type: ignore
 

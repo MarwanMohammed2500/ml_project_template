@@ -1,5 +1,4 @@
 data/
-src/ml_project_template/notebooks # (unless research and prod share a repo)
 checkpoints/
 .ruff_cache/
 .pytest_cache/
@@ -9,3 +8,5 @@ mlruns/
 mlflow.db
 artifacts/
 .env
+**.csv
+**.json

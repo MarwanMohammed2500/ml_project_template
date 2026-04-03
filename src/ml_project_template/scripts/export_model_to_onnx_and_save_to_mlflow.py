@@ -12,8 +12,8 @@ from ml_project_template.core.configs.validator import ENVS  # type: ignore
 
 
 @click.group()
-def cli():
-    """A handy CLI tool."""
+def cli_exporter():
+    """A CLI tool to exort Torch models to ONNX and register them in MLFlow's Model registery"""
     pass
 
 
@@ -89,5 +89,5 @@ def export_model_to_onnx_and_save_to_mlflow(
 
 
 if __name__ == "__main__":
-    cli.add_command(export_model_to_onnx_and_save_to_mlflow)
-    cli()
+    cli_exporter.add_command(export_model_to_onnx_and_save_to_mlflow)
+    cli_exporter()
