@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 from ml_project_template.serving.services import inference  # type: ignore
 
 
-@patch("ml_project_template.inference.services.inference.Model")
+@patch("ml_project_template.serving.services.inference.Model")
 def test_predict(mock_model_cls):  # type: ignore
     # Create a mock model instance
     mock_model_instance = MagicMock()

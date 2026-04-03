@@ -2,7 +2,7 @@ from ml_project_template.core.configs import load_configs  # type: ignore
 
 
 def test_load_configs():
-    configs = load_configs("tests/configs/test_configs.yaml")
+    configs = load_configs("tests/core/configs/test_configs.yaml")
     assert configs is not None
     assert configs.model_config is not None
 

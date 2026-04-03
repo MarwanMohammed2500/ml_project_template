@@ -7,7 +7,7 @@ def test_setup_logging(caplog: LogCaptureFixture):
     setup_logging(
         level=logging.DEBUG,
         json_logs=True,
-        output_file="tests/logging/test_logs.json",
+        output_file="tests/core/logging/test_logs.json",
     )
     logger = logging.getLogger("test_logger")
 
