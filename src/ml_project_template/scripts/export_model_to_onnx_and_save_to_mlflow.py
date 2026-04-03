@@ -83,7 +83,7 @@ def export_model_to_onnx_and_save_to_mlflow(
     mlflow.onnx.log_model(  # type: ignore
         model,
         name="onnx_model",
-        registered_model_name="SimpleModel_ONNX",
+        registered_model_name=f"{model_to_export.__class__.__name__}_ONNX",  # type: ignore
         signature=signature,
     )
 

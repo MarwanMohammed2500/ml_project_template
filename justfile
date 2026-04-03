@@ -37,3 +37,11 @@ release_new_onnx_version version:
 # Train the model, uses yaml_path to load yaml configurations sepecific for the model trainer
 train yaml_path="configs/training_configs.yaml":
     uv run -m src.ml_project_template.training.run training-pipeline --yaml_path {{yaml_path}}
+
+serve port="8000" num_workers="4" timeout="120":
+    gunicorn src.ml_project_template.serving.api.app:app \
+     --workers {{num_workers}} \
+     --worker-class uvicorn.workers.UvicornWorker \
+     --bind 0.0.0.0:{{port}} \
+     --preload \
+     --timeout {{timeout}}

@@ -149,7 +149,6 @@ class _BinaryClassifierModel:
         logits: np.ndarray = self.model_instance.run(  # type: ignore
             [self.output_name], ort_inputs
         )[0]
-        print(f"logits = {logits}")
         output, prob = self._process_model_output(np.array(logits, dtype=np.float32))
         return output, prob
 

@@ -28,12 +28,13 @@ def trainer_params() -> dict[str, Any]:
         "task_type": "binary",
         "num_epochs": 2,
         "loss_fn": torch.nn.BCEWithLogitsLoss(),
-        "optimizer": torch.optim.Adam(model.parameters(), lr=0.01),
+        "optimizer_class": torch.optim.Adam,
         "train_dataloader": dl,
         "test_dataloader": dl,
         "num_classes": 2,
         "model_instance": model,
         "device": "cpu",
+        "learning_rate": 1e-3,
     }
 
 

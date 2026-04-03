@@ -117,7 +117,7 @@ class Trainer:
         self.optimizer: torch.optim.Optimizer
         self._create_optimizer()
 
-        self.lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler]
+        self.lr_scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
         if self.lr_scheduler_class is not None:
             self._create_lr_scheduler()
 
