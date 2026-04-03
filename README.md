@@ -219,13 +219,6 @@ uv sync
 ```
 
 ---
-# Running the API Server
-Start the FastAPI Uvicorn server by running:
-```bash
-uv run -m ml_project_template.main
-```
-
----
 # Core Workflow
 - **Configure:** Define your task and hyperparameters in configs/training_configs.yaml.
 - **Train:** Run the training pipeline. The `Trainer` automatically logs metrics, params, and the state_dict to MLflow.
