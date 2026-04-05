@@ -1,12 +1,12 @@
 name: CI Suite
-on: [push]
-
-paths-ignore:
-- "README.md"
-- "justfile"
-- .gitignore
-- "/configs/*"
-- "data/*"
+on: 
+  push:
+    paths-ignore:
+      - "README.md"
+      - "justfile"
+      - ".gitignore"
+      - "configs/*"
+      - "data/*"
 
 env:
   APP_MODE: ${{ vars.APP_MODE }}
