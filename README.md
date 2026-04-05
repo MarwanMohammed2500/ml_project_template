@@ -16,7 +16,10 @@ This template provides a structured starting point for ML projects, including:
 The goal is to provide a **clean foundation for building production-ready ML services**.
 
 ---
+# General Workflow Diagram
+<img width="655" height="882" alt="image" src="https://github.com/user-attachments/assets/666ec229-8f33-454d-978c-c054f36c09d1" />
 
+---
 # Features
 
 - **PyTorch Training Framework**
