@@ -1,8 +1,12 @@
 set dotenv-load := true
 
-# Build the development environment and run the application
-dev:
-    docker compose -f docker/docker-compose.dev.yaml up --build
+# Builds the development environment and run the application
+build_and_run_dev:
+    docker compose -f docker/docker-compose.dev.yml up --build -d
+
+# Runs the development environment without rebuilding the images (useful when you just want to restart the containers)
+run_dev:
+    docker compose -f docker/docker-compose.dev.yml up -d
 
 # Run the unit tests
 test:
