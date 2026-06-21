@@ -1,8 +1,12 @@
 set dotenv-load := true
 
-# Build the development environment and run the application
-dev:
-    docker compose -f docker/docker-compose.dev.yaml up --build
+# Builds the development environment and run the application
+build_and_run_dev:
+    docker compose -f docker/docker-compose.dev.yml up --build -d
+
+# Runs the development environment without rebuilding the images (useful when you just want to restart the containers)
+run_dev:
+    docker compose -f docker/docker-compose.dev.yml up -d
 
 # Run the unit tests
 test:
@@ -13,7 +17,7 @@ clean:
     rm -rf .pytest_cache
     rm -rf .ruff_cache
     find . -type d -name "__pycache__" -exec rm -r {} +
-    docker-compose -f docker/docker-compose.dev.yaml down -v
+    docker compose -f docker/docker-compose.dev.yaml down -v
 
 # Run the linter and auto-formatter (ruff in this case)
 lint:
